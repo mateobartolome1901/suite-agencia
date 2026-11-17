@@ -1,0 +1,23 @@
+# Secretos: nunca al repo (tokens de GHL, Meta, Anthropic, Google, Stripe van en variables de entorno de Render)
+.env
+.env.*
+*.pem
+*.key
+
+# Datos y bases locales
+*.db
+*.sqlite
+*.sqlite3
+datos*.json
+privado*.json
+respaldos/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db

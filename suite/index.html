@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Suite de Agencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<!-- Un tema por negocio (tools/temas.py): mismo CSS que la suite original, solo cambian los colores -->
+<link rel="stylesheet" id="tema" href="temas/plastia.css">
+<script>try { if (localStorage.getItem('suite_negocio') === 'tpa') document.getElementById('tema').href = 'temas/tpa.css'; } catch (e) { /* sin almacenamiento */ }</script>
+</head>
+<body>
+<div class="app">
+  <div class="movil-barra">
+    <button class="movil-btn" type="button" id="movil-menu-btn" aria-label="Abrir el menú"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h14"/></svg></button>
+    <span class="movil-titulo" id="movil-titulo">Inicio</span>
+    <button class="movil-btn" type="button" aria-label="Cuenta"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg></button>
+  </div>
+  <div class="movil-velo"></div>
+  <aside class="lateral" id="lateral"></aside>
+  <main class="principal" id="principal"></main>
+</div>
+<script src="comun.js"></script>
+<script src="negocios.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -39,7 +39,9 @@ def test_alta_y_lista(app, admin):
     r = _post(admin, {'cuenta_id': app.clinica['id'], 'fecha': '2026-11-12', 'monto': 8000, 'costo': 2000, 'contacto': 'Beto Prueba', 'servicio': 'Lipo'})
     assert r.status_code == 201
     d = admin.get('/api/plastia/ventas?desde=2026-11-01&hasta=2026-11-30').get_json()
-    assert d['resumen']['ventas'] == 2 and d['resumen']['monto'] == 13000 and d['resumen']['pauta'] > 0
+    fila = next(c for c in d['cuentas'] if c['id'] == app.clinica['id'])
+    assert fila['moneda'] == 'COP' and fila['monto'] == 13000  # la clínica vende en pesos
+    assert d['resumen']['ventas'] == 2 and abs(d['resumen']['monto'] - 13000 / d['tasas']['COP']) < 0.01  # totales en USD
 
 
 def test_validaciones(app, admin):

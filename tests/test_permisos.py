@@ -20,6 +20,27 @@ CASOS = {
     '/api/<negocio>/ventas#POST': ('POST', {'anon': 401, 'admin': 201, 'vendedor': 201, 'operador': 201}),
     '/api/<negocio>/ventas/<int:venta_id>': ('PATCH', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
     '/api/<negocio>/contactos': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 200}),
+    '/api/<negocio>/cuentas/<int:cuenta_id>/fuentes': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/cobros': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/cobros#POST': ('POST', {'anon': 401, 'admin': 201, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/cobros/<int:cobro_id>': ('PATCH', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/movimientos': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/movimientos#POST': ('POST', {'anon': 401, 'admin': 201, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/movimientos/<int:mov_id>': ('PATCH', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/finanzas': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/resumen': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/ventas-agencia': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/items': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 403}),
+    '/api/<negocio>/items#POST': ('POST', {'anon': 401, 'admin': 201, 'vendedor': 201, 'operador': 403}),
+    '/api/<negocio>/items/<int:item_id>': ('PATCH', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 403}),
+    '/api/<negocio>/semanal': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 403}),
+    '/api/<negocio>/rendimiento': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 403}),
+    '/api/<negocio>/conversaciones': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 403}),
+    '/api/<negocio>/conversaciones/<conv_id>': ('GET', {'anon': 401, 'admin': 404, 'vendedor': 404, 'operador': 403}),
+    '/api/<negocio>/conversaciones/<conv_id>#POST': ('POST', {'anon': 401, 'admin': 404, 'vendedor': 404, 'operador': 403}),
+    '/api/usuarios': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/usuarios#POST': ('POST', {'anon': 401, 'admin': 201, 'vendedor': 403, 'operador': 403}),
+    '/api/usuarios/<int:usuario_id>': ('PATCH', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
     '/api/<negocio>/indicadores#PUT': ('PUT', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
 }
 EXCLUIDAS = {'/auth/salir'}  # escritura sin datos de cuentas: probada aparte
@@ -27,7 +48,9 @@ EXCLUIDAS = {'/auth/salir'}  # escritura sin datos de cuentas: probada aparte
 
 def _url(regla, app):
     return (regla.split('#')[0].replace('<negocio>', 'plastia').replace('<int:cuenta_id>', str(app.clinica['id']))
-            .replace('<cita_id>', app.cita_id).replace('<int:venta_id>', str(app.venta_id)))
+            .replace('<cita_id>', app.cita_id).replace('<int:venta_id>', str(app.venta_id)).replace('<int:cobro_id>', str(app.cobro_id))
+            .replace('<int:mov_id>', str(app.mov_id)).replace('<int:item_id>', str(app.item_id)).replace('<conv_id>', 'conv1')
+            .replace('<int:usuario_id>', str(app.usuario_id)))
 
 
 def test_todas_las_rutas_tienen_caso(app):
@@ -45,9 +68,20 @@ def test_permisos_por_rol(app, regla, rol):
     cli.csrf = getattr(cli, 'csrf', '')
     cuerpo = ({'asistencia': 'asistio'} if 'resultado' in regla else
               {'cuenta_id': app.clinica['id'], 'fecha': '2026-11-10', 'monto': 1000} if 'ventas' in regla else
+              {'cuenta_id': app.clinica['id'], 'concepto': 'setup', 'monto': 750} if regla == '/api/<negocio>/cobros#POST' else
+              {'pagado': '2026-11-10'} if 'cobro_id' in regla else
+              {'tipo': 'gasto', 'fecha': '2026-11-10', 'monto': 50, 'categoria': 'Herramientas'} if regla == '/api/<negocio>/movimientos#POST' else
+              {'borrar': True} if 'mov_id' in regla else
+              {'tipo': 'tarea', 'titulo': 'Llamar'} if regla == '/api/<negocio>/items#POST' else
+              {'columna': 'hecho'} if 'item_id' in regla else
+              {'texto': 'hola', 'contacto_id': 'k1', 'cuenta_id': app.clinica['id']} if 'conv_id' in regla else
+              {'email': 'nuevo@agencia.com', 'rol': 'vendedor', 'negocios': ['plastia']} if regla == '/api/usuarios#POST' else
+              {'nombre': 'Closer 2'} if 'usuario_id' in regla else
               {'nombre': 'Clínica nueva'} if metodo in ('POST', 'PATCH')
               else {'valores': {}} if metodo == 'PUT' else None)
-    r = cli.open(_url(regla, app), method=metodo, json=cuerpo, headers={'X-CSRF': cli.csrf})
+    q = ('?cuenta_id=%d' % app.clinica['id'] if regla.endswith('<conv_id>') and metodo == 'GET' else
+         '?tipo=tarea' if regla == '/api/<negocio>/items' else '')
+    r = cli.open(_url(regla, app) + q, method=metodo, json=cuerpo, headers={'X-CSRF': cli.csrf})
     assert r.status_code == esperado[rol], (regla, rol, r.status_code)
 
 

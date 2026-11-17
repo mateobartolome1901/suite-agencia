@@ -47,7 +47,7 @@
     var p = r.desde.split('-'), titulo = MES_LARGO[+p[1] - 1] + ' ' + p[0];
     var h = '<header><div class="e19"><h1 class="titulo-1">' + esc(tituloMenu()) + '</h1><span class="e30">' + (com
       ? 'Ventas de ' + esc(v.servicios.toLowerCase()) + ' por ' + esc(v.cuenta.toLowerCase()) + ' · comisión ' + r.comision_pct + '% de (venta − costos − pauta) · ' + esc(v.vendedor.toLowerCase()) + ' ' + r.closer_pct + '% de la comisión'
-      : 'Lo que venden tus ' + esc(v.cuentas.toLowerCase()) + ' con las citas de la agencia: el retorno de cada uno sobre la pauta') + '</span></div>' +
+      : 'Lo que venden tus ' + esc(v.cuentas.toLowerCase()) + ' con las citas de la agencia: el retorno de cada uno sobre la pauta') + (r.tasas && r.tasas.COP && com ? ' · totales en USD · 1 USD = ' + Math.round(r.tasas.COP).toLocaleString('es-CO') + ' COP' : '') + '</span></div>' +
       '<div class="cab-filtros e36"><button class="btn-sec" type="button" disabled>' + esc(v.cuentas) + ': Todas (' + r.cuentas_disponibles.length + ')</button></div></header>';
     h += '<div class="cal-barra"><h2 class="titulo-cal">' + esc(titulo) + '</h2><div class="cal-paso"><button type="button" class="e112" data-v-mes="-1" aria-label="Mes anterior">‹</button><button type="button" class="e113" data-v-mes="0">Este mes</button><button type="button" class="e112" data-v-mes="1" aria-label="Mes siguiente">›</button>' +
       '<button type="button" class="fin-boton" data-v-nueva>+ Registrar ' + (com ? 'venta' : 'cierre') + '</button></div></div>';
@@ -74,8 +74,9 @@
       '<div class="caja"><div class="rend-scroll"><table class="rend-tabla"><thead><tr><th>' + esc(v.cuenta) + '</th><th class="rend-num">' + (com ? 'Ventas' : 'Cierres') + '</th><th class="rend-num">Monto</th>' + (com ? '<th class="rend-num">Costos</th>' : '') + '<th class="rend-num">Pauta</th>' +
       (com ? '<th class="rend-num">Margen</th><th class="rend-num">Comisión</th><th class="rend-num">' + esc(v.vendedor) + '</th>' : '<th class="rend-num">Retorno</th>') + '</tr></thead><tbody>' +
       filas.map(function (c) {
-        return '<tr><td><strong>' + esc(c.nombre) + '</strong></td><td class="rend-num">' + c.ventas + '</td><td class="rend-num">' + plata(c.monto) + '</td>' + (com ? '<td class="rend-num">' + plata(c.costos) + '</td>' : '') + '<td class="rend-num">' + plata(c.pauta) + '</td>' +
-          (com ? '<td class="rend-num" style="color:' + (c.margen < 0 ? 'var(--rojo-texto)' : 'inherit') + '">' + plata(c.margen) + '</td><td class="rend-num"><strong>' + plata(c.comision) + '</strong></td><td class="rend-num">' + plata(c.closer) + '</td>'
+        var m = function (k) { return S().conUsd(c[k], c.moneda, c[k + '_usd']); };
+        return '<tr><td><strong>' + esc(c.nombre) + '</strong></td><td class="rend-num">' + c.ventas + '</td><td class="rend-num">' + m('monto') + '</td>' + (com ? '<td class="rend-num">' + m('costos') + '</td>' : '') + '<td class="rend-num">' + m('pauta') + '</td>' +
+          (com ? '<td class="rend-num" style="color:' + (c.margen < 0 ? 'var(--rojo-texto)' : 'inherit') + '">' + m('margen') + '</td><td class="rend-num"><strong>' + m('comision') + '</strong></td><td class="rend-num">' + m('closer') + '</td>'
             : '<td class="rend-num"><strong>' + (c.retorno == null ? '—' : c.retorno.toFixed(1) + 'x') + '</strong></td>') + '</tr>';
       }).join('') + (filas.length ? '' : '<tr><td colspan="8" class="e11">Sin ventas ni pauta en el mes.</td></tr>') + '</tbody></table></div></div></section>';
     // Ventas del mes
@@ -83,8 +84,9 @@
       '<div class="caja"><div class="rend-scroll"><table class="rend-tabla"><thead><tr><th>Fecha</th><th>' + esc(v.contacto) + '</th><th>' + esc(v.cuenta) + '</th><th>' + esc(v.servicio) + '</th><th class="rend-num">Venta</th>' +
       (com ? '<th class="rend-num">Costos</th><th class="rend-num">Pauta</th><th class="rend-num">Comisión</th><th class="rend-num">' + esc(v.vendedor) + '</th><th>Cobrada</th>' : '') + '</tr></thead><tbody>' +
       r.ventas.map(function (x) {
-        return '<tr data-v-editar="' + x.id + '" style="cursor:pointer"><td>' + corta(x.fecha) + '</td><td><strong>' + esc(x.contacto || '—') + '</strong></td><td class="e30">' + esc(x.cuenta) + '</td><td>' + esc(x.servicio || '—') + '</td><td class="rend-num">' + plata(x.monto) + '</td>' +
-          (com ? '<td class="rend-num">' + plata(x.costo) + '</td><td class="rend-num e30">' + plata(x.pauta) + '</td><td class="rend-num"><strong>' + plata(x.comision) + '</strong></td><td class="rend-num">' + (x.vendedor ? plata(x.closer) + ' <span class="e12">' + esc(x.vendedor.split('@')[0]) + '</span>' : '—') + '</td>' +
+        var m = function (k) { return S().conUsd(x[k], x.moneda, x[k + '_usd']); };
+        return '<tr data-v-editar="' + x.id + '" style="cursor:pointer"><td>' + corta(x.fecha) + '</td><td><strong>' + esc(x.contacto || '—') + '</strong></td><td class="e30">' + esc(x.cuenta) + '</td><td>' + esc(x.servicio || '—') + '</td><td class="rend-num">' + m('monto') + '</td>' +
+          (com ? '<td class="rend-num">' + m('costo') + '</td><td class="rend-num e30">' + m('pauta') + '</td><td class="rend-num"><strong>' + m('comision') + '</strong></td><td class="rend-num">' + (x.vendedor ? m('closer') + ' <span class="e12">' + esc(x.vendedor.split('@')[0]) + '</span>' : '—') + '</td>' +
             '<td><span class="rend-estado" data-estado="' + (x.comision_cobrada ? 'cumple' : x.comision ? 'cerca' : '') + '">' + (x.comision_cobrada ? 'Cobrada' : x.comision ? 'Por cobrar' : '—') + '</span></td>' : '') + '</tr>';
       }).join('') + (r.ventas.length ? '' : '<tr><td colspan="10" class="e11">Todavía no hay ventas cargadas este mes. Usá «+ Registrar».</td></tr>') + '</tbody></table></div></div></section>';
     if (com && r.vendedores.length) {
@@ -103,8 +105,8 @@
       '<label class="ct-dato">Fecha<input class="ct-input" type="date" name="fecha" required value="' + esc(x.fecha) + '"></label>' +
       '<label class="ct-dato">' + esc(v.contacto) + '<input class="ct-input" name="contacto" maxlength="200" value="' + esc(x.contacto) + '"></label>' +
       '<label class="ct-dato">' + esc(v.servicio) + '<input class="ct-input" name="servicio" maxlength="200" value="' + esc(x.servicio) + '"></label>' +
-      '<label class="ct-dato">' + (com ? 'Venta' : 'Volumen') + ' (USD)<input class="ct-input" name="monto" inputmode="decimal" required value="' + esc(x.monto == null ? '' : x.monto) + '"></label>' +
-      (com ? '<label class="ct-dato">Costos de la ' + esc(v.servicio.toLowerCase()) + ' (USD)<input class="ct-input" name="costo" inputmode="decimal" value="' + esc(x.costo == null ? '' : x.costo) + '" placeholder="0"></label>' : '') +
+      '<label class="ct-dato">' + (com ? 'Venta' : 'Volumen') + ' (en la moneda de la ' + esc(v.cuenta.toLowerCase()) + ')<input class="ct-input" name="monto" inputmode="decimal" required value="' + esc(x.monto == null ? '' : x.monto) + '"></label>' +
+      (com ? '<label class="ct-dato">Costos de la ' + esc(v.servicio.toLowerCase()) + '<input class="ct-input" name="costo" inputmode="decimal" value="' + esc(x.costo == null ? '' : x.costo) + '" placeholder="0"></label>' : '') +
       (com && admin ? '<label class="ct-dato">' + esc(v.vendedor) + ' que cerró (email)<input class="ct-input" type="email" name="vendedor" value="' + esc(x.vendedor) + '" placeholder="vacío: sin ' + esc(v.vendedor.toLowerCase()) + '"></label>' : '') +
       '<label class="ct-dato ct-dato--ancho">Notas<textarea class="ct-input ct-input--largo" name="notas" maxlength="2000">' + esc(x.notas) + '</textarea></label></div>' +
       (com && admin && x.id ? '<label class="e91"><input type="checkbox" name="comision_cobrada"' + (x.comision_cobrada ? ' checked' : '') + '> Comisión cobrada</label>' : '') +
@@ -191,7 +193,7 @@
   document.addEventListener('submit', function (e) {
     if (e.target.id !== 'v-form') return;
     e.preventDefault();
-    var f = e.target, id = f.getAttribute('data-id'), num = function (s) { s = String(s || '').trim().replace(',', '.'); return s === '' ? null : Number(s); };
+    var f = e.target, id = f.getAttribute('data-id'), num = function (s) { s = String(s || '').trim(); if (/,/.test(s) && /\./.test(s)) s = s.replace(/\./g, ''); s = s.replace(',', '.'); return s === '' ? null : Number(s); };
     var cuerpo = { cuenta_id: +f.cuenta_id.value, fecha: f.fecha.value, contacto: f.contacto.value, servicio: f.servicio.value, monto: num(f.monto.value), notas: f.notas.value };
     if (f.costo) cuerpo.costo = num(f.costo.value);
     if (f.vendedor) cuerpo.vendedor = f.vendedor.value;

@@ -66,6 +66,22 @@ class GHL:
     def contacto(self, contacto_id):
         return self._get('/contacts/' + contacto_id, '2021-07-28').get('contact', {})
 
+    # ---- Conversaciones (necesita conversations.readonly / conversations/message.write) ----
+    def conversaciones(self, location_id, limite=40):
+        return self._get('/conversations/search', '2021-04-15', locationId=location_id, limit=limite,
+                         sort='desc', sortBy='last_message_date').get('conversations', [])
+
+    def mensajes(self, conversacion_id, limite=60):
+        d = self._get(f'/conversations/{conversacion_id}/messages', '2021-04-15', limit=limite)
+        return (d.get('messages') or {}).get('messages', []) if isinstance(d.get('messages'), dict) else d.get('messages', [])
+
+    def enviar(self, contacto_id, texto, tipo='SMS'):
+        r = self.s.post(BASE + '/conversations/messages', timeout=30, json={'type': tipo, 'contactId': contacto_id, 'message': texto},
+                        headers={'Authorization': 'Bearer ' + self.token, 'Version': '2021-04-15', 'Accept': 'application/json'})
+        if r.status_code >= 400:
+            raise ErrorCRM(f'GHL enviar: {r.status_code} {r.text[:200]}')
+        return r.json()
+
 
 def origen_anuncio(contacto):
     """ID del anuncio (o campaña + nombre) mirando la primera y la última atribución: al agendar, GHL pisa la última
@@ -99,10 +115,14 @@ def leer_cuenta(cliente, cuenta, reglas, desde, hasta, zona, cache_origen=None):
     """Devuelve citas en formato crudo: [{fecha, minuto, creada, tipo, estado, contacto_id, origen, id, titulo}]."""
     cache_origen = {} if cache_origen is None else cache_origen
     salida = []
+    elegidos = {c['id']: c.get('tipo') for c in (cuenta.get('calendarios') or []) if c.get('id')}
     for cal in cliente.calendarios(cuenta['crm_location_id']):
-        if cal.get('isActive') is False:
+        if elegidos:  # elegidos a mano en la ficha de la cuenta: solo esos, con el tipo elegido
+            tipo = elegidos.get(cal.get('id'))
+        elif cal.get('isActive') is False:
             continue
-        tipo = tipo_calendario(cal.get('name', ''), reglas)
+        else:
+            tipo = tipo_calendario(cal.get('name', ''), reglas)
         if not tipo:
             continue
         for ev in cliente.citas(cuenta['crm_location_id'], cal['id'], desde, hasta):

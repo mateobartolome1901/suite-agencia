@@ -70,8 +70,9 @@ def salir():
 @requiere()
 def sesion():
     u = usuario_actual()
-    negocios = list(current_app.negocios) if u['rol'] == 'admin' else [n for n in (u.get('negocios') or []) if n in current_app.negocios]
-    return jsonify(email=u['email'], nombre=u['nombre'], rol=u['rol'], negocios=negocios, csrf=session.get('csrf'))
+    negocios = [n for n in (u.get('negocios') or []) if n in current_app.negocios]
+    return jsonify(email=u['email'], nombre=u['nombre'], rol=u['rol'], negocios=negocios, menus=u.get('menus') or [],
+                   cuentas=u.get('cuentas') or [], csrf=session.get('csrf'))
 
 
 @bp.get('/api/login-opciones')

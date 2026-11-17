@@ -15,7 +15,7 @@ var NEGOCIOS = {
     cobro: { setup: 750, pctAgencia: 25, pctCloser: 25 },
     menus: [
       { grupo: null, items: [['resumen', 'Inicio', 'casa']] },
-      { grupo: 'Motor Agencia', items: [['ag-ventas', 'Ventas Plastia', 'tendencia'], ['ag-campanas', 'Campañas Plastia', 'megafono'], ['finanzas', 'Finanzas', 'billetera'], ['tareas', 'Tareas', 'check']] },
+      { grupo: 'Motor Agencia', items: [['ag-ventas', 'Ventas Plastia', 'tendencia'], ['ag-campanas', 'Campañas Plastia', 'megafono'], ['finanzas', 'Finanzas', 'billetera'], ['cobros', 'Cobros', 'tarjeta'], ['tareas', 'Tareas', 'check']] },
       { grupo: 'Motor Contenido', items: [['guiones', 'Guiones', 'guion'], ['tablero-edicion', 'Tablero de edición', 'tablero'], ['storyboards', 'Storyboards', 'video'], ['estilos', 'Estilos de edición', 'paleta']] },
       { grupo: 'Motor Clínicas', items: [['panel', 'Panel de campañas', 'megafono'], ['trazabilidad', 'Trazabilidad', 'ruta'], ['calendario', 'Calendario de citas', 'calendario'], ['conversaciones', 'Conversaciones', 'chat'], ['pacientes', 'Pacientes', 'personas'], ['seguimientos', 'Seguimientos', 'reloj'], ['rendimiento', 'Rendimiento de closers', 'trofeo'], ['semanal', 'Reportes semanales', 'informe'], ['bitacora', 'Bitácora de cirugías', 'libro']] },
       { grupo: 'Administración', items: [['recursos', 'Ficha de clínicas', 'ficha'], ['indicadores', 'Indicadores', 'diana'], ['usuarios', 'Usuarios', 'usuario']] }

@@ -26,9 +26,13 @@ def sembrar_cuentas(motor, negocio):
         return
     with motor.begin() as c:
         for i, nombre in enumerate(CUENTAS_DEMO[negocio]):
+            plan = NEGOCIOS[negocio].get('plan') or {}
             c.execute(insert(db.cuentas).values(negocio=negocio, nombre=nombre, propia=(i == 0),
                                                 grupo='Propia' if i == 0 else ('Nuevas' if i > 3 else 'Activas'),
-                                                crm_location_id='', meta_cuentas=[], youtube_cuentas=[], activo=True))
+                                                crm_location_id='', meta_cuentas=[], youtube_cuentas=[], activo=True,
+                                                moneda='USD' if i == 0 else NEGOCIOS[negocio].get('moneda_cuentas', 'USD'),
+                                                plan_setup=None if i == 0 else plan.get('setup'), plan_fee=None if i == 0 else (plan.get('fee') or None),
+                                                alta=None if i == 0 else dt.date(2026, 7 + min(i, 4), 3 + i)))
 
 
 def datos(negocio, cuentas, hoy, dias=90, proximos=14):

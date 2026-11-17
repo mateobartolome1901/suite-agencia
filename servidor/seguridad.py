@@ -26,6 +26,8 @@ def usuario_actual():
         fila = c.execute(select(db.usuarios).where(db.usuarios.c.email == email)).first()
     if fila and fila.activo:  # cada pedido vuelve a verificar que siga activo
         g.u = dict(fila._mapping)
+        if g.u['rol'] == 'cuenta':  # portal del cliente: mismos permisos que el operador de la cuenta
+            g.u['rol'] = 'operador'
     return g.u
 
 
@@ -37,7 +39,8 @@ def iniciar_sesion(email):
         fila = c.execute(select(db.usuarios).where(db.usuarios.c.email == email)).first()
         if not fila and email in cfg.ADMINS:  # los ADMINS del entorno se crean solos la primera vez
             c.execute(db.usuarios.insert().values(email=email, nombre=email.split('@')[0], rol='admin',
-                                                  negocios=list(current_app.negocios), cuentas=[], menus=[], activo=True))
+                                                  negocios=cfg.ADMINS_NEGOCIOS.get(email) or list(current_app.negocios),
+                                                  cuentas=[], menus=[], activo=True))
             fila = c.execute(select(db.usuarios).where(db.usuarios.c.email == email)).first()
         if not fila or not fila.activo:
             return False
@@ -70,7 +73,7 @@ def requiere(*roles):
             if negocio is not None:
                 if negocio not in current_app.negocios:
                     abort(404)
-                if u['rol'] != 'admin' and negocio not in (u.get('negocios') or []):
+                if negocio not in (u.get('negocios') or []):  # también el admin: Luis solo ve TPA
                     abort(403)
             return f(*a, **k)
         return envuelta

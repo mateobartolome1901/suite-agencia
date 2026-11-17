@@ -17,7 +17,7 @@
     var esc = S().esc, ph = c.defecto != null ? num(c.defecto) : 'sin meta';
     return '<label class="ind-campo"><span class="ind-nombre">' + esc(c.nombre) + '</span>' +
       '<span class="ind-fila"><input class="rec-input ind-input" type="text" inputmode="decimal" autocomplete="off" data-ind="' + esc(c.clave) + '" value="' + esc(num(valor)) + '" placeholder="' + esc(ph) + '" aria-label="' + esc(c.nombre) + '">' +
-      '<span class="ind-unidad">' + esc(c.unidad) + '</span></span>' +
+      '<span class="ind-unidad">' + esc(c.unidad === 'n' ? '' : c.unidad) + '</span></span>' +
       '<span class="e12">' + esc(c.ayuda) + (c.defecto != null ? ' · vacío: ' + num(c.defecto) : '') + '</span></label>';
   }
 

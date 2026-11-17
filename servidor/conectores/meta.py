@@ -36,7 +36,7 @@ class Meta:
             cuenta_act = 'act_' + cuenta_act
         url = f'{self.base}/{cuenta_act}/insights'
         params = {'level': 'ad', 'time_increment': 1, 'limit': 500, 'access_token': self.token,
-                  'fields': 'ad_id,ad_name,adset_name,campaign_name,spend,impressions,clicks,actions',
+                  'fields': 'ad_id,ad_name,adset_name,campaign_id,campaign_name,spend,impressions,clicks,actions',
                   'time_range': json.dumps({'since': desde.isoformat(), 'until': hasta.isoformat()})}
         filas = []
         while url:
@@ -52,8 +52,27 @@ class Meta:
             for x in cuerpo.get('data', []):
                 filas.append({'fecha': x['date_start'], 'ad_id': x['ad_id'], 'ad_name': x.get('ad_name', ''),
                               'adset_name': x.get('adset_name', ''), 'campaign_name': x.get('campaign_name', ''),
+                              'campaign_id': x.get('campaign_id', ''),
                               'gasto': float(x.get('spend', 0)), 'impresiones': int(x.get('impressions', 0)),
                               'clics': int(x.get('clicks', 0)), 'leads': leads_de(x.get('actions'))})
             url = cuerpo.get('paging', {}).get('next')
             params = None  # la URL de "next" ya trae todo
         return filas
+
+    def _get(self, ruta, **params):
+        params['access_token'] = self.token
+        r = self.s.get(f'{self.base}/{ruta}', params=params, timeout=60)
+        if r.status_code >= 400:
+            raise ErrorMeta(f'Meta {ruta}: {r.status_code} {r.text[:200]}')
+        return r.json()
+
+    def moneda(self, cuenta_act):
+        """Moneda de la cuenta publicitaria (el gasto viene en esta moneda)."""
+        act = cuenta_act if cuenta_act.startswith('act_') else 'act_' + cuenta_act
+        return self._get(act, fields='currency,name').get('currency', 'USD')
+
+    def campanas(self, cuenta_act):
+        """Campañas de la cuenta para elegir cuáles cuentan: [{id, nombre, estado}]."""
+        act = cuenta_act if cuenta_act.startswith('act_') else 'act_' + cuenta_act
+        d = self._get(act + '/campaigns', fields='id,name,effective_status', limit=200)
+        return [{'id': x['id'], 'nombre': x.get('name', ''), 'estado': x.get('effective_status', '')} for x in d.get('data', [])]

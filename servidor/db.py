@@ -3,7 +3,7 @@ import datetime as dt
 import json
 
 from sqlalchemy import (JSON, Boolean, Column, Date, DateTime, Float, Integer, MetaData, String, Table, Text, create_engine,
-                        insert, select, update)
+                        inspect, insert, select, text, update)
 
 meta = MetaData()
 
@@ -40,6 +40,15 @@ cuentas = Table(
     Column('youtube_cuentas', JSON, default=list),         # ids de cliente de Google Ads
     Column('objetivo_costo_cita', Float),                  # si es nulo, el del embudo
     Column('activo', Boolean, default=True),
+    # Fuentes elegidas a mano (la subcuenta o la cuenta publicitaria pueden tener cosas de otros negocios):
+    Column('calendarios', JSON, default=list),             # [{id, nombre, tipo}] vacío = por nombre (config)
+    Column('campanas', JSON, default=list),                # [{id, nombre}] vacío = todas las campañas
+    Column('moneda', String(3), default='USD'),            # moneda en que vende la cuenta (ventas y comisión)
+    Column('plan_setup', Float),                           # setup cobrado al cliente (USD)
+    Column('plan_fee', Float),                             # fee mensual (USD)
+    Column('alta', Date),                                  # desde cuándo es cliente (para generar los fees)
+    Column('baja', Date),
+    Column('ficha', JSON, default=dict),                   # ficha comercial: precios, objeciones, contacto…
 )
 
 # Lo que publica el worker: datos:<negocio> (agregado, sin datos personales), privado:<negocio> (PII), estado
@@ -97,6 +106,59 @@ ventas = Table(
     Column('activo', Boolean, default=True),
 )
 
+# Finanzas: ingresos, gastos y transferencias entre socios (cualquier moneda; se muestra también en USD)
+movimientos = Table(
+    'movimientos', meta,
+    Column('id', Integer, primary_key=True),
+    Column('negocio', String(30), nullable=False),
+    Column('fecha', Date, nullable=False),
+    Column('tipo', String(20), nullable=False),            # ingreso, gasto, transferencia
+    Column('categoria', String(60)),
+    Column('concepto', String(200)),
+    Column('monto', Float, nullable=False),
+    Column('moneda', String(3), default='USD'),
+    Column('cuenta_id', Integer),
+    Column('socio', String(60)),                           # quién pagó o cobró (transferencia: quién manda)
+    Column('socio_destino', String(60)),                   # transferencia: quién recibe
+    Column('quien', String(200)),
+    Column('creado', DateTime, default=ahora),
+    Column('activo', Boolean, default=True),
+)
+
+# Cobros a clientes: setups, fees mensuales (se generan solos según el plan de cada cuenta) y comisiones
+cobros = Table(
+    'cobros', meta,
+    Column('id', Integer, primary_key=True),
+    Column('negocio', String(30), nullable=False),
+    Column('cuenta_id', Integer, nullable=False),
+    Column('concepto', String(20), nullable=False),        # setup, fee, comision, otro
+    Column('periodo', String(7)),                          # aaaa-mm (fees)
+    Column('monto', Float, nullable=False),
+    Column('moneda', String(3), default='USD'),
+    Column('vence', Date),
+    Column('pagado', Date),
+    Column('nota', String(200)),
+    Column('quien', String(200)),
+    Column('activo', Boolean, default=True),
+)
+
+# Tableros y listas genéricos: tareas, videos (tablero de edición), guiones, storyboards, estilos
+items = Table(
+    'items', meta,
+    Column('id', Integer, primary_key=True),
+    Column('negocio', String(30), nullable=False),
+    Column('tipo', String(20), nullable=False),
+    Column('columna', String(40)),
+    Column('titulo', String(300), nullable=False),
+    Column('datos', JSON, default=dict),                   # texto, checklist, links, costo, escenas…
+    Column('responsable', String(200)),
+    Column('vence', Date),
+    Column('orden', Float, default=0),
+    Column('quien', String(200)),
+    Column('actualizado', DateTime, default=ahora),
+    Column('activo', Boolean, default=True),
+)
+
 auditoria = Table(
     'auditoria', meta,
     Column('id', Integer, primary_key=True),
@@ -112,7 +174,22 @@ auditoria = Table(
 def conectar(url):
     motor = create_engine(url, future=True, pool_pre_ping=True)
     meta.create_all(motor)
+    migrar(motor)
     return motor
+
+
+def migrar(motor):
+    """create_all no agrega columnas a tablas que ya existen: las agrega acá (solo columnas nuevas y nulables)."""
+    ins = inspect(motor)
+    with motor.begin() as c:
+        for tabla in meta.sorted_tables:
+            if not ins.has_table(tabla.name):
+                continue
+            hay = {x['name'] for x in ins.get_columns(tabla.name)}
+            for col in tabla.columns:
+                if col.name not in hay:
+                    tipo = col.type.compile(dialect=motor.dialect)
+                    c.execute(text(f'ALTER TABLE {tabla.name} ADD COLUMN {col.name} {tipo}'))
 
 
 def auditar(motor, quien, accion, objeto, antes=None, despues=None):

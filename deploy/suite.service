@@ -1,0 +1,16 @@
+[Unit]
+Description=Suite de agencia (web + worker)
+After=network.target
+
+[Service]
+User=__USUARIO__
+WorkingDirectory=__DIR__
+EnvironmentFile=__DIR__/.env
+# Estos valores mandan sobre el .env: nunca login de desarrollo en el servidor, base en /opt/suite/datos,
+# worker dentro del mismo proceso (gratis: un solo servicio) y Caddy adelante con HTTPS.
+ExecStart=/usr/bin/env DEV_LOGIN=0 WORKER_EN_WEB=1 DETRAS_DE_PROXY=1 DATABASE_URL=sqlite:///__DIR__/datos/suite.db __DIR__/venv/bin/gunicorn "servidor:create_app()" --workers 1 --threads 8 --bind 127.0.0.1:8000 --timeout 120
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

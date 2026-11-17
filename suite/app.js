@@ -1,10 +1,25 @@
 // Suite de agencia: menú lateral con selector de negocio (como subcuentas) e Inicio por modelo de cobro.
 (function () {
-  var HOY = new Date(2026, 10, 17), DIAS_MES = 30, AVANCE = HOY.getDate() / DIAS_MES;
+  var HOY = new Date(), DIAS_MES = new Date(HOY.getFullYear(), HOY.getMonth() + 1, 0).getDate(), AVANCE = HOY.getDate() / DIAS_MES;
   var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   var estado = { negocio: leer('suite_negocio', 'plastia'), menu: (location.hash || '#resumen').slice(1), vista: 'mes', mes: HOY.getMonth(), anio: HOY.getFullYear(), grupos: JSON.parse(leer('suite_grupos', '{}')) };
   var SESION = null; // la completa /api/sesion; sin servidor queda en null (vista de ejemplo)
+  var REAL = {};     // negocio -> true cuando el Inicio ya tiene los datos del servidor
   if (!NEGOCIOS[estado.negocio]) estado.negocio = 'plastia';
+  // Menús por rol: el admin ve todo; el resto, lo de su trabajo (o la lista que le armó el admin en Usuarios)
+  var MENUS_ROL = {
+    vendedor: ['panel', 'trazabilidad', 'calendario', 'conversaciones', 'pacientes', 'seguimientos', 'rendimiento', 'semanal', 'bitacora', 'tareas', 'guiones', 'tablero-edicion', 'storyboards', 'estilos'],
+    operador: ['calendario', 'pacientes', 'bitacora']
+  };
+  function menuPermitido(id) {
+    if (!SESION || SESION.rol === 'admin') return true;
+    var lista = (SESION.menus && SESION.menus.length) ? SESION.menus : (MENUS_ROL[SESION.rol] || []);
+    return lista.indexOf(id) >= 0;
+  }
+  function menusDe(cfg) {
+    return cfg.menus.map(function (g) { return { grupo: g.grupo, items: g.items.filter(function (it) { return menuPermitido(it[0]); }) }; })
+      .filter(function (g) { return g.items.length; });
+  }
   function negociosVisibles() { return SESION ? SESION.negocios.filter(function (n) { return NEGOCIOS[n]; }) : Object.keys(NEGOCIOS); }
 
   function leer(k, def) { try { var v = localStorage.getItem(k); return v === null ? def : v; } catch (e) { return def; } }
@@ -55,7 +70,7 @@
         return '<button class="neg-op" type="button" role="menuitemradio" data-negocio="' + k + '" aria-checked="' + (k === estado.negocio) + '" style="--ico:' + n.ico + '"><span class="neg-sigla">' + n.sigla + '</span><span class="neg-txt"><strong>' + esc(n.nombre) + '</strong><span>' + esc(n.modeloTxt) + '</span></span></button>';
       }).join('') + '</div></div>';
     html += '<div class="lateral-cuerpo"><nav aria-label="Menús">';
-    cfg.menus.forEach(function (g) {
+    menusDe(cfg).forEach(function (g) {
       var links = g.items.map(function (it) {
         var activo = it[0] === estado.menu;
         var st = (activo ? 'background: var(--nav-activo); box-shadow: var(--nav-activo-sombra);' : '') + (ICO_EXTRA[it[0]] ? '--ico:' + ICO_EXTRA[it[0]] + ';' : '');
@@ -171,10 +186,10 @@
   // ---- Inicio: comisión (Plastia) ----
   function inicioComision(cfg, d) {
     var c = calcPlastia(d, cfg), t = c.t;
-    var gastos = d.gastos.reduce(function (a, g) { return a + g[1]; }, 0), stripe = d.gastos.filter(function (g) { return /Stripe/.test(g[0]); })[0][1];
+    var gastos = d.gastos.reduce(function (a, g) { return a + g[1]; }, 0), stripe = (d.gastos.filter(function (g) { return /Stripe/.test(g[0]); })[0] || [0, 0])[1];
     var cash = c.setup + t.cobrado, cashNeto = cash - stripe, flujo = cashNeto - (gastos - stripe), porCobrar = t.comision - t.cobrado;
     var factura = c.setup + t.comision, comisionando = c.filas.filter(function (f) { return f.comision > 0; }).length;
-    var closerPend = t.closer * (porCobrar / t.comision);
+    var closerPend = t.comision ? t.closer * (porCobrar / t.comision) : 0;
     var h = cabecera('Inicio', '{per} · Salud del negocio · USD');
     h += '<div class="grilla" style="--n:3">' +
       tarjeta({ nombre: 'Facturación', clave: true, valor: us(factura), sub: 'setups + comisiones generadas · ' + t.cirugias + ' cirugías', barra: { pct: pct(factura, d.proy.comisiones + d.proy.setups * cfg.cobro.setup), estado: juicio(factura, d.proy.comisiones + d.proy.setups * cfg.cobro.setup), txt: pct(factura, d.proy.comisiones + d.proy.setups * cfg.cobro.setup) + '% de ' + us(d.proy.comisiones + d.proy.setups * cfg.cobro.setup) + ' proyectado' }, ir: ['Ver ingresos', 'finanzas'] }) +
@@ -209,7 +224,7 @@
   // ---- Inicio: fee mensual (TPA) ----
   function inicioFee(cfg, d) {
     var c = calcTpa(d, cfg);
-    var gastos = d.gastos.reduce(function (a, g) { return a + g[1]; }, 0), stripe = d.gastos.filter(function (g) { return /Stripe/.test(g[0]); })[0][1];
+    var gastos = d.gastos.reduce(function (a, g) { return a + g[1]; }, 0), stripe = (d.gastos.filter(function (g) { return /Stripe/.test(g[0]); })[0] || [0, 0])[1];
     var cash = c.setup + c.pagado, cashNeto = cash - stripe, flujo = cashNeto - (gastos - stripe), porSocio = flujo / cfg.socios.length;
     var porCobrar = c.vencido + c.pendiente, ltv = cfg.cobro.setup + cfg.cobro.fee * 8;
     var h = cabecera('Inicio', '{per} · Salud del negocio · USD');
@@ -289,10 +304,13 @@
   }
   function inicio() { var cfg = NEGOCIOS[estado.negocio], d = DEMO[estado.negocio]; return cfg.modelo === 'comision' ? inicioComision(cfg, d) : inicioFee(cfg, d); }
 
-  function existeMenu(id) { var hay = false; NEGOCIOS[estado.negocio].menus.forEach(function (g) { g.items.forEach(function (it) { if (it[0] === id) hay = true; }); }); return hay; }
+  function existeMenu(id) { var hay = false; menusDe(NEGOCIOS[estado.negocio]).forEach(function (g) { g.items.forEach(function (it) { if (it[0] === id) hay = true; }); }); return hay; }
   function titulo() { var t = 'Inicio'; NEGOCIOS[estado.negocio].menus.forEach(function (g) { g.items.forEach(function (it) { if (it[0] === estado.menu) t = it[1]; }); }); return t; }
   function render() {
     var cfg = NEGOCIOS[estado.negocio];
+    if (!existeMenu(estado.menu) && estado.menu !== 'resumen' || (estado.menu === 'resumen' && !menuPermitido('resumen'))) {
+      var primero = menusDe(cfg)[0]; estado.menu = primero ? primero.items[0][0] : 'resumen';
+    }
     document.documentElement.setAttribute('data-negocio', estado.negocio);
     var tema = document.getElementById('tema'); if (tema.getAttribute('href') !== 'temas/' + estado.negocio + '.css') tema.setAttribute('href', 'temas/' + estado.negocio + '.css');
     document.title = titulo() + ' · ' + cfg.nombre;
@@ -304,7 +322,16 @@
       MENUS_API[estado.menu](estado.menu, estado.negocio);
       return;
     }
-    document.getElementById('principal').innerHTML = estado.menu === 'resumen' ? inicio() : (estado.menu === 'finanzas' && cfg.socios.length > 1) ? finanzasSocios(cfg, DEMO[estado.negocio]) : enConstruccion(cfg, estado.menu);
+    if (estado.menu === 'resumen' && SESION && !REAL[estado.negocio]) {
+      document.getElementById('principal').innerHTML = '<header><div class="e19"><h1 class="titulo-1">Inicio</h1><span class="e30">Cargando…</span></div></header>';
+      var n = estado.negocio;
+      fetch('/api/' + n + '/resumen', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (d) { DEMO[n] = d; REAL[n] = true; } else REAL[n] = 'ejemplo';
+        if (estado.menu === 'resumen' && estado.negocio === n) render();
+      }).catch(function () { REAL[n] = 'ejemplo'; render(); });
+      return;
+    }
+    document.getElementById('principal').innerHTML = estado.menu === 'resumen' ? inicio() : enConstruccion(cfg, estado.menu);
     window.dcPostRender();
   }
 
@@ -336,7 +363,7 @@
     if (t.closest('.movil-velo') || t.closest('.lateral nav a')) { document.documentElement.classList.remove('movil-menu'); }
   });
   document.addEventListener('submit', function (e) {
-    if (e.target.id !== 'form-transf') return;
+    if (e.target.id !== 'form-transf' || SESION) return;
     e.preventDefault();
     var f = e.target, monto = Math.round(+f.monto.value), d = DEMO[estado.negocio], cfg = NEGOCIOS[estado.negocio];
     if (!(monto > 0)) return;
@@ -350,7 +377,15 @@
     document.documentElement.classList.remove('movil-menu');
   });
   window.addEventListener('hashchange', function () { estado.menu = (location.hash || '#resumen').slice(1); render(); window.scrollTo(0, 0); });
-  window.SUITE = { esc: esc, us: us, tarjeta: tarjeta, secItem: secItem, secundarias: secundarias, bloque: bloque,
+  // Monto en su moneda; si no es USD, con el equivalente en dólares al lado
+  function plata(x, mon) {
+    if (x == null) return '—';
+    mon = (mon || 'USD').toUpperCase();
+    if (mon === 'USD') return us(x);
+    return (x < 0 ? '−' : '') + '$' + Math.round(Math.abs(x)).toLocaleString('es-CO') + ' ' + mon;
+  }
+  function conUsd(x, mon, usd) { return (mon || 'USD').toUpperCase() === 'USD' || x == null ? plata(x, 'USD') : plata(x, mon) + ' <span class="e12">≈ ' + us(usd || 0) + '</span>'; }
+  window.SUITE = { esc: esc, us: us, plata: plata, conUsd: conUsd, tarjeta: tarjeta, secItem: secItem, secundarias: secundarias, bloque: bloque, menusDe: menusDe,
     negocio: function () { return estado.negocio; }, sesion: function () { return SESION; } };
   if (leer('suite_lat_mini', '0') === '1') document.documentElement.classList.add('lat-mini');
   // Con servidor: sesión obligatoria (sin sesión va a /ingresar). Sin servidor (archivo estático): vista de ejemplo.

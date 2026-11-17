@@ -28,11 +28,15 @@ class Config:
         elif self.DATABASE_URL.startswith('postgresql://'):
             self.DATABASE_URL = 'postgresql+psycopg://' + self.DATABASE_URL[len('postgresql://'):]
         self.ADMINS = [x.strip().lower() for x in e.get('ADMINS', '').split(',') if x.strip()]
+        # Negocios de cada admin (los que no están acá ven todos): {"luis@...": ["tpa"]}
+        self.ADMINS_NEGOCIOS = {k.lower(): v for k, v in _json_env('ADMINS_NEGOCIOS', {}).items()}
+        # El worker corre dentro del servidor web (hosting de un solo proceso, gratis)
+        self.WORKER_EN_WEB = e.get('WORKER_EN_WEB') == '1'
         self.DOMINIO_ADMIN = e.get('DOMINIO_ADMIN', '')
         self.GOOGLE_CLIENT_ID = e.get('GOOGLE_CLIENT_ID', '')
         self.GOOGLE_CLIENT_SECRET = e.get('GOOGLE_CLIENT_SECRET', '')
         # CRM: un token por subcuenta (location id -> token). Lectura y escritura por separado.
-        self.CRM_TOKENS = _json_env('CRM_TOKENS', {})
+        self.CRM_TOKENS = {k: v for k, v in _json_env('CRM_TOKENS', {}).items() if not k.startswith('PEGAR')}
         self.CRM_TOKENS_ESCRITURA = _json_env('CRM_TOKENS_ESCRITURA', {})
         self.META_ACCESS_TOKEN = e.get('META_ACCESS_TOKEN', '')
         self.META_API_VERSION = e.get('META_API_VERSION', 'v21.0')
@@ -44,8 +48,8 @@ class Config:
         self.ZONA_HORARIA = e.get('ZONA_HORARIA', 'America/New_York')
         self.DIAS = int(e.get('DIAS', '90'))
         self.DIAS_PROXIMOS = int(e.get('DIAS_PROXIMOS', '14'))
-        # Sin credenciales de Meta, el worker publica datos de ejemplo para poder ver la suite
-        self.DATOS_DEMO = e.get('DATOS_DEMO', '1' if not self.META_ACCESS_TOKEN else '0') == '1'
+        # Sin credenciales (ni Meta ni GHL), el worker publica datos de ejemplo para poder ver la suite
+        self.DATOS_DEMO = e.get('DATOS_DEMO', '1' if not (self.META_ACCESS_TOKEN or self.CRM_TOKENS) else '0') == '1'
         self.TESTING = False
         for k, v in extra.items():
             setattr(self, k, v)
@@ -60,7 +64,8 @@ NEGOCIOS = {
     'plastia': {
         'nombre': 'Plastia Partners',
         'corto': 'Plastia', 'cuentas': 'Clínicas', 'vendedor': 'Closer', 'moneda': 'USD',
-        'comision_pct': 25, 'closer_pct': 25,  # 25% de (venta − costos − pauta); el closer, 25% de eso
+        'comision_pct': 25, 'closer_pct': 25, 'moneda_cuentas': 'COP',  # las clínicas venden en pesos colombianos
+        'plan': {'setup': 750, 'fee': 0},  # 25% de (venta − costos − pauta); el closer, 25% de eso
         'embudos': {
             'valoracion': {
                 'nombre': 'Valoración pagada',
@@ -80,7 +85,8 @@ NEGOCIOS = {
     },
     'tpa': {
         'nombre': 'Top Producer Acquisition',
-        'corto': 'TPA', 'cuentas': 'Clientes', 'vendedor': 'Setter', 'moneda': 'USD',
+        'corto': 'TPA', 'cuentas': 'Clientes', 'vendedor': 'Setter', 'moneda': 'USD', 'moneda_cuentas': 'USD',
+        'plan': {'setup': 4000, 'fee': 750}, 'socios': [['Mateo', 50], ['Luis', 50]], 'pagador_pauta': 'Luis',
         'embudos': {
             'citas': {
                 'nombre': 'Citas de realtors',

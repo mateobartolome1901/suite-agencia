@@ -49,6 +49,22 @@ def esquema(negocio):
             _campo('emb_%s_pct_cierre' % k, '% de cierre', '%', 'cerrados ÷ asistieron'),
         ]} for k, e in cfg['embudos'].items()],
     }]
+    com = bool(cfg.get('comision_pct'))
+    secciones.append({
+        'id': 'proyeccion',
+        'titulo': 'Proyección del mes',
+        'sub': 'Lo que el Inicio usa para decir si vas al ritmo. En USD.',
+        'grupos': [{'nombre': None, 'campos': [
+            _campo('proy_cash', 'Cash collected', 'USD', 'todo lo cobrado en el mes'),
+            _campo('proy_flujo', 'Flujo de caja neto', 'USD', 'cobrado − gastos'),
+            _campo('proy_setups', ('Clínicas' if com else 'Clientes') + ' nuevos', 'n', 'setups del mes'),
+            _campo('proy_comisiones' if com else 'proy_mrr', 'Comisiones generadas' if com else 'MRR', 'USD',
+                   '25% del margen de las cirugías' if com else 'clientes × fee mensual'),
+            _campo('proy_cuentas', ('Clínicas comisionando' if com else 'Clientes activos'), 'n', 'a fin de mes'),
+            _campo('proy_pauta_propia', 'Pauta propia', 'USD', 'para conseguir clientes nuevos'),
+            _campo('proy_pauta_cuentas', 'Pauta de ' + cfg.get('cuentas', 'clientes').lower(), 'USD', 'campañas que corre la agencia'),
+        ] + ([_campo('tasa_cop', 'Cotización del dólar (a mano)', 'COP', 'pesos por 1 USD · vacío: la del día, automática')] if cfg.get('moneda_cuentas') == 'COP' else [])}],
+    })
     return secciones
 
 

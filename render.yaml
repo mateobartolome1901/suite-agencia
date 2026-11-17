@@ -43,5 +43,7 @@ envVarGroups:
         sync: false
       - key: META_ACCESS_TOKEN
         sync: false
+      - key: DETRAS_DE_PROXY
+        value: "1"
       - key: ZONA_HORARIA
         value: America/New_York

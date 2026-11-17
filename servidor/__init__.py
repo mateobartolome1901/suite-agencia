@@ -21,12 +21,18 @@ def create_app(cfg=None):
     app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', SESSION_COOKIE_SECURE=not cfg.DEV,
                       PERMANENT_SESSION_LIFETIME=dt.timedelta(hours=12))
     app.motor = db.conectar(cfg.DATABASE_URL)
+    if os.environ.get('DETRAS_DE_PROXY') == '1':  # Caddy o Render adelante: respetar https y el dominio real
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     from .auth import bp as auth_bp
     from .api import bp as api_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp)
     app.after_request(cabeceras)
+    if cfg.WORKER_EN_WEB and not cfg.TESTING:
+        from .worker import en_segundo_plano
+        en_segundo_plano(cfg, app.motor)
 
     @app.errorhandler(401)
     @app.errorhandler(403)

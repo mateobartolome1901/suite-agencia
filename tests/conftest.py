@@ -40,6 +40,14 @@ def app(tmp_path):
         a.venta_id = c.execute(insert(db.ventas).values(negocio='plastia', cuenta_id=clinica['id'], fecha=dt.date(2026, 11, 5), contacto='Ana Ejemplo',
                                                         servicio='Rinoplastia', monto=5000, costo=1500, vendedor='closer@agencia.com',
                                                         quien='admin@agencia.com', activo=True)).inserted_primary_key[0]
+        a.cobro_id = c.execute(insert(db.cobros).values(negocio='plastia', cuenta_id=clinica['id'], concepto='setup', monto=750, moneda='USD',
+                                                        vence=dt.date(2026, 11, 1), activo=True)).inserted_primary_key[0]
+        a.mov_id = c.execute(insert(db.movimientos).values(negocio='plastia', fecha=dt.date(2026, 11, 2), tipo='gasto', categoria='Herramientas',
+                                                           monto=97, moneda='USD', activo=True)).inserted_primary_key[0]
+        a.item_id = c.execute(insert(db.items).values(negocio='plastia', tipo='tarea', columna='por_hacer', titulo='Revisar', datos={},
+                                                      activo=True)).inserted_primary_key[0]
+    with m.connect() as c:
+        a.usuario_id = c.execute(db.usuarios.select().where(db.usuarios.c.email == 'closer@agencia.com')).first().id
     return a
 
 

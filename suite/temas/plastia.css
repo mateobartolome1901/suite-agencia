@@ -2097,5 +2097,19 @@ body.tb-arrastrando, body.tb-arrastrando * { cursor: grabbing !important; user-s
 /* Lo oculto con el atributo hidden queda oculto aunque su clase le dé display */
 [hidden] { display: none !important; }
 
+/* Indicadores: un campo por meta (nombre, número con unidad, de dónde sale). Mismos tokens que las tarjetas. */
+.ind-intro { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 8px 24px; }
+.ind-grilla { align-items: stretch; }
+.ind-campo { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px; border-radius: var(--r); border: 1px solid var(--borde); background: var(--brillo-sup), var(--tarjeta); box-shadow: var(--relieve); transition: border-color 220ms ease-out; }
+.ind-campo[data-guardado], .ind-fila[data-guardado] .ind-input { border-color: var(--menta); }
+.ind-nombre { font-size: 14px; font-weight: 600; color: var(--texto); line-height: 1.35; }
+.ind-fila { display: flex; align-items: center; gap: 10px; margin-top: auto; }
+.ind-fila--celda { justify-content: flex-end; margin: 0; }
+.ind-fila--celda .ind-input { width: 120px; }
+.ind-input { flex: 1; min-width: 0; min-height: 40px; text-align: right; font-family: var(--f-titulo); font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ind-input[aria-invalid="true"] { border-color: var(--rojo); }
+.ind-unidad { flex: none; min-width: 28px; font-size: 12px; font-weight: 700; color: var(--texto-3); }
+.caja > .fin-h3 + .grilla { margin-top: -4px; }
+
 /* Luces del fondo de este negocio (las del original usan el verde de estado como luz) */
 .app::before { background: radial-gradient(900px 620px at 88% -8%, rgba(143, 214, 193, 0.15), transparent 62%), radial-gradient(760px 560px at 22% 4%, rgba(31, 122, 102, 0.22), transparent 64%), radial-gradient(820px 640px at 4% 92%, rgba(224, 138, 88, 0.06), transparent 60%), radial-gradient(700px 520px at 96% 78%, rgba(31, 122, 102, 0.1), transparent 62%), linear-gradient(180deg, #10221E, #0B1715 65%); }

@@ -23,7 +23,7 @@ GLOSARIO = {
     'Sin marcar': 'Citas que ya pasaron y siguen sin estado en el CRM.',
     'Veredicto': 'Escalar: costo por cita ≤ 80% del objetivo con 3 citas o más. Mantener: hasta el objetivo. '
                  'Revisar: hasta el doble del objetivo. Pausar: más del doble, o sin citas habiendo gastado 1,5 veces el objetivo.',
-    'Semáforo': 'Por costo por cita creada contra el objetivo de Indicadores: bien hasta el objetivo, atención hasta 30% arriba, crítico más arriba.',
+    'Semáforo': 'Por costo por cita creada contra el objetivo de Indicadores: bien hasta el objetivo, atención hasta el «rojo arriba de» de Indicadores (si no está cargado, 30% arriba), crítico más arriba.',
     'Comparación': 'Contra el período anterior del mismo largo. Si el rango llega al futuro, compara solo lo que ya pasó.',
 }
 
@@ -113,14 +113,14 @@ def _serie(por_dia, clave):
     return []
 
 
-def semaforo(costo_cita, gasto, objetivo):
+def semaforo(costo_cita, gasto, objetivo, factor_rojo=1.3):
     if not gasto:
         return 'sin_datos'
     if costo_cita is None:
         return 'critico'  # gastó y no trajo citas
     if costo_cita <= objetivo:
         return 'bien'
-    if costo_cita <= objetivo * 1.3:
+    if costo_cita <= objetivo * factor_rojo:
         return 'atencion'
     return 'critico'
 
@@ -138,7 +138,7 @@ def veredicto(gasto, citas, objetivo):
     return 'pausar'
 
 
-def panel(datos, cuentas, desde, hasta, paso, objetivo_defecto, hoy):
+def panel(datos, cuentas, desde, hasta, paso, objetivo_defecto, hoy, factor_rojo=1.3):
     """cuentas: lista de dicts {id, nombre, objetivo_costo_cita} ya filtrada por permisos."""
     ids = [c['id'] for c in cuentas]
     act = _base(datos, ids, desde, hasta, paso, hoy)
@@ -159,7 +159,7 @@ def panel(datos, cuentas, desde, hasta, paso, objetivo_defecto, hoy):
         ba = _base(datos, [c['id']], a0, a1, paso, hoy)
         prox = sum(1 for fc, _m, _cr, cid, tipo, est, _a in datos['citas']
                    if cid == c['id'] and tipo == paso and hoy.isoformat() <= fc <= proximos_fin and est != 'cancelada')
-        est = semaforo(b['costo_cita'], b['gasto'], objetivo)
+        est = semaforo(b['costo_cita'], b['gasto'], objetivo, factor_rojo)
         semaf[est].append(c['nombre'])
         if not b['gasto'] and not b['leads'] and not b['citas']:
             nota = 'Sin actividad en el período'
@@ -201,6 +201,7 @@ def panel(datos, cuentas, desde, hasta, paso, objetivo_defecto, hoy):
         'tendencia': [{'dia': d, 'leads': v['leads'], 'citas': v['citas']} for d, v in sorted(act['por_dia'].items())],
         'alertas': alertas,
         'objetivo': objetivo_defecto,
+        'objetivo_rojo': objetivo_defecto * factor_rojo,
         'anterior': {'desde': a0.isoformat(), 'hasta': a1.isoformat()},
     }
 

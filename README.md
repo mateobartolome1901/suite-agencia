@@ -23,6 +23,8 @@ Basada en el SOP «Plantilla de la Suite de Agencia» y en el kit visual de la s
 - Panel de campañas, Campañas propias (de cada negocio) y Trazabilidad con datos del servidor: KPI clave contra objetivo, funnel, semáforo, tabla por cuenta, veredicto por anuncio y glosario.
 - Tests: permisos (cada ruta × cada rol), métricas y conectores con respuestas simuladas.
 
+**Indicadores (Administración, solo admin):** el admin carga desde la suite los costos objetivo (campañas propias y de clientes, verde hasta / rojo arriba de), las tasas meta (agendamiento, asistencia, cierre) y, opcional, un objetivo por cuenta. Se guardan en la tabla `indicadores` (por negocio) con auditoría; el Panel de campañas y Trazabilidad los leen. Si una meta nunca se cargó, vale la de `servidor/config.py`.
+
 El resto de los menús muestra qué va a hacer y en qué fase entra. Plan de fases: F1 datos (GHL + Meta), F2 agenda, F3 contactos y ventas, F4 dinero, F5 comunicación, F6 IA, F7 portal y seguridad, F8 contenido.
 
 **Stack (igual al original):** Python + Flask, Postgres, frontend sin framework, hosting en Render (servicios web + worker + base), integraciones con Go High Level, Meta Ads, YouTube Ads, API de Claude y Google Drive.

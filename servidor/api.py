@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, abort, current_app, jsonify, request
 from sqlalchemy import insert, select, update
 
-from . import db, metricas
+from . import db, indicadores, metricas
 from .config import NEGOCIOS
 from .seguridad import cuentas_visibles, datos_de_cuentas, requiere, usuario_actual
 
@@ -44,16 +44,20 @@ def _contexto(negocio):
     if hasta < desde or (hasta - desde).days > 120:
         abort(400)
     cfg = NEGOCIOS[negocio]
+    clave = None
     if ambito == 'agencia':
-        paso, objetivo, nombre = cfg['agencia']['paso'], cfg['agencia']['objetivo_costo_cita'], cfg['agencia']['nombre']
+        paso, nombre, fabrica = cfg['agencia']['paso'], cfg['agencia']['nombre'], cfg['agencia']['objetivo_costo_cita']
     else:
         clave = request.args.get('embudo') or next(iter(cfg['embudos']))
         if clave not in cfg['embudos']:
             abort(400)
         e = cfg['embudos'][clave]
-        paso, objetivo, nombre = e['paso'], e['objetivo_costo_cita'], e['nombre']
+        paso, nombre, fabrica = e['paso'], e['nombre'], e['objetivo_costo_cita']
+    # metas de Indicadores (lo que cargó el admin; si no cargó nada, el valor de fábrica de config.py)
+    ind = indicadores.para_panel(current_app.motor, negocio, ambito, clave)
     return {'u': u, 'ambito': ambito, 'cuentas': visibles, 'datos': datos, 'hoy': hoy, 'desde': desde, 'hasta': hasta,
-            'paso': paso, 'objetivo': objetivo, 'embudo': nombre}
+            'paso': paso, 'objetivo': ind['objetivo'] or fabrica, 'factor_rojo': ind['factor_rojo'], 'metas': ind['metas'],
+            'embudo': nombre}
 
 
 def _vacio():
@@ -67,7 +71,7 @@ def _cabecera(ctx, negocio):
             'cuentas_disponibles': [{'id': c['id'], 'nombre': c['nombre'], 'grupo': c['grupo']} for c in ctx['cuentas']],
             'actualizado': estado.get('actualizado'), 'demo': bool(ctx['datos'] and ctx['datos'].get('demo')),
             'avisos': estado.get('avisos', []) if ctx['u']['rol'] == 'admin' else [],
-            'sin_datos': ctx['datos'] is None, 'glosario': metricas.GLOSARIO}
+            'sin_datos': ctx['datos'] is None, 'glosario': metricas.GLOSARIO, 'metas': ctx['metas']}
 
 
 @bp.get('/<negocio>/panel')
@@ -76,7 +80,7 @@ def _cabecera(ctx, negocio):
 def panel(negocio):
     ctx = _contexto(negocio)
     datos = ctx['datos'] or _vacio()
-    r = metricas.panel(datos, ctx['cuentas'], ctx['desde'], ctx['hasta'], ctx['paso'], ctx['objetivo'], ctx['hoy'])
+    r = metricas.panel(datos, ctx['cuentas'], ctx['desde'], ctx['hasta'], ctx['paso'], ctx['objetivo'], ctx['hoy'], ctx['factor_rojo'])
     r.update(_cabecera(ctx, negocio))
     return jsonify(r)
 
@@ -138,3 +142,72 @@ def cuentas_editar(negocio, cuenta_id):
         c.execute(update(db.cuentas).where(db.cuentas.c.id == cuenta_id).values(**datos))
     db.auditar(current_app.motor, usuario_actual()['email'], 'editar_cuenta', f'{negocio}:{cuenta_id}', dict(antes._mapping), datos)
     return jsonify(ok=True)
+
+
+# ---- Indicadores (solo admin): metas por negocio y objetivo opcional por cuenta ----
+
+def _indicadores_respuesta(negocio):
+    m = current_app.motor
+    cuentas = [{'id': c['id'], 'nombre': c['nombre'], 'grupo': c['grupo'], 'propia': bool(c['propia']),
+                'objetivo_costo_cita': c['objetivo_costo_cita']} for c in cuentas_visibles(usuario_actual(), negocio)]
+    return {'secciones': indicadores.esquema(negocio), 'valores': indicadores.guardados(m, negocio),
+            'cuentas': cuentas, 'ultimo': indicadores.ultimo_cambio(m, negocio)}
+
+
+@bp.get('/<negocio>/indicadores')
+@requiere('admin')
+@datos_de_cuentas
+def indicadores_ver(negocio):
+    return jsonify(_indicadores_respuesta(negocio))
+
+
+def _numero(v, maximo):
+    """None o '' = sin meta; si no, número entre 0 y maximo."""
+    if v is None or v == '':
+        return None
+    if isinstance(v, bool) or not isinstance(v, (int, float, str)):
+        abort(400)
+    try:
+        v = float(str(v).replace(',', '.'))
+    except ValueError:
+        abort(400)
+    if not (0 <= v <= maximo):
+        abort(400)
+    return v
+
+
+@bp.put('/<negocio>/indicadores')
+@requiere('admin')
+@datos_de_cuentas
+def indicadores_guardar(negocio):
+    cuerpo = request.get_json(silent=True)
+    if not isinstance(cuerpo, dict):
+        abort(400)
+    campos = indicadores.campos(negocio)
+    nuevos_v = cuerpo.get('valores') or {}
+    nuevos_c = cuerpo.get('cuentas') or {}
+    if not isinstance(nuevos_v, dict) or not isinstance(nuevos_c, dict):
+        abort(400)
+    limpios = {}
+    for k, v in nuevos_v.items():
+        if k not in campos:
+            abort(400)
+        limpios[k] = _numero(v, 100 if campos[k]['unidad'] == '%' else 1e7)
+    ids = {c['id']: c for c in cuentas_visibles(usuario_actual(), negocio)}
+    por_cuenta = {}
+    for k, v in nuevos_c.items():
+        if not str(k).isdigit() or int(k) not in ids:
+            abort(400)
+        por_cuenta[int(k)] = _numero(v, 1e7)
+    m = current_app.motor
+    previos = indicadores.guardados(m, negocio)
+    antes = {'valores': {k: previos.get(k) for k in limpios},
+             'cuentas': {i: ids[i]['objetivo_costo_cita'] for i in por_cuenta}}
+    indicadores.guardar(m, negocio, limpios, usuario_actual()['email'])
+    if por_cuenta:
+        with m.begin() as c:
+            for i, v in por_cuenta.items():
+                c.execute(update(db.cuentas).where(db.cuentas.c.id == i, db.cuentas.c.negocio == negocio)
+                          .values(objetivo_costo_cita=v))
+    db.auditar(m, usuario_actual()['email'], 'editar_indicadores', negocio, antes, {'valores': limpios, 'cuentas': por_cuenta})
+    return jsonify(_indicadores_respuesta(negocio))

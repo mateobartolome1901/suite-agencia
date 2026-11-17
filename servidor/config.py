@@ -53,11 +53,13 @@ class Config:
             raise RuntimeError('Falta SECRET_KEY')
 
 
+# objetivo_costo_cita = valor de fábrica: el admin lo cambia en Indicadores (tabla indicadores).
 # Embudos por negocio. El primer paso con cita es el que se mide en el Panel de campañas.
 # calendarios: se reconocen por nombre (sin mayúsculas ni acentos). Ajustar a los nombres reales de GHL.
 NEGOCIOS = {
     'plastia': {
         'nombre': 'Plastia Partners',
+        'corto': 'Plastia', 'cuentas': 'Clínicas', 'vendedor': 'Closer', 'moneda': 'USD',
         'embudos': {
             'valoracion': {
                 'nombre': 'Valoración pagada',
@@ -66,7 +68,8 @@ NEGOCIOS = {
                 'objetivo_costo_cita': 60,
             },
         },
-        'agencia': {'nombre': 'Ventas Plastia', 'paso': 'calificacion', 'objetivo_costo_cita': 90},
+        'agencia': {'nombre': 'Ventas Plastia', 'paso': 'calificacion', 'objetivo_costo_cita': 90,
+                    'descripcion': 'llamadas con dueños de clínicas'},
         'calendarios': {
             'calificacion': ['evaluacion', 'llamada', 'orientacion'],
             'principal': ['valoracion', 'consulta'],
@@ -76,6 +79,7 @@ NEGOCIOS = {
     },
     'tpa': {
         'nombre': 'Top Producer Acquisition',
+        'corto': 'TPA', 'cuentas': 'Clientes', 'vendedor': 'Setter', 'moneda': 'USD',
         'embudos': {
             'citas': {
                 'nombre': 'Citas de realtors',
@@ -84,7 +88,8 @@ NEGOCIOS = {
                 'objetivo_costo_cita': 45,
             },
         },
-        'agencia': {'nombre': 'Ventas TPA', 'paso': 'calificacion', 'objetivo_costo_cita': 120},
+        'agencia': {'nombre': 'Ventas TPA', 'paso': 'calificacion', 'objetivo_costo_cita': 120,
+                    'descripcion': 'llamadas con realtors'},
         'calendarios': {
             'calificacion': ['discovery', 'estrategica', 'strategy', 'llamada de venta'],
             'principal': ['listing', 'buyer', 'consultation', 'showing', 'cita'],

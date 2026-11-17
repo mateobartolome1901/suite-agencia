@@ -66,7 +66,7 @@ var MENU_INFO = {
   'bitacora': ['F3', 'Cada venta que cobra la cuenta con sus costos. Es la base del cálculo de comisión (Plastia) o la prueba de retorno del cliente (TPA).'],
   'cobros': ['F4', 'Suscripciones: fee por cliente, fecha de corte, estado del mes (pagado / pendiente / vencido), días de mora y link de pago.'],
   'recursos': ['F3', 'Todo lo que hace falta para vender por la cuenta y calcular lo que se le cobra: condiciones comerciales, servicios, precios, objeciones.'],
-  'indicadores': ['F3', 'Metas contra las que se juzga todo: costos objetivo por embudo, tasas meta y proyección por mes.'],
+  'indicadores': ['F1', 'Metas contra las que se juzga todo: costos objetivo por embudo, tasas meta y proyección por mes.'],
   'guiones': ['F8', 'En la reunión semanal se eligen los ángulos que funcionaron, las cuentas, cuántos videos y el estilo; Claude genera los guiones y llegan como tarjetas «Para revisar» al Tablero de edición.'],
   'tablero-edicion': ['F8', 'El flujo de cada video: Guiones → Por editar → Storyboard → En corrección → Editando → Editados, con costo estimado por tarjeta.'],
   'storyboards': ['F8', 'Revisar el borrador de cada video antes de editarlo: línea de tiempo por escenas, notas por escena, aprobar o mandar a corregir.'],

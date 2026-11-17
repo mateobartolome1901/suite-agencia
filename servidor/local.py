@@ -27,7 +27,7 @@ def main():
     from . import create_app, worker
     app = create_app()
     worker.una_lectura(app.cfg, app.motor)
-    app.run(port=int(os.environ.get('PUERTO', '8765')), debug=False)
+    app.run(port=int(os.environ.get('PUERTO') or os.environ.get('PORT') or '8765'), debug=False)
 
 
 if __name__ == '__main__':

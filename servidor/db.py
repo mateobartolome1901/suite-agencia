@@ -50,6 +50,16 @@ datos_panel = Table(
     Column('actualizado', DateTime, default=ahora),
 )
 
+# Metas que carga el admin en Indicadores (clave -> valor, por negocio). Nulo = sin meta (o el valor de fábrica).
+indicadores = Table(
+    'indicadores', meta,
+    Column('negocio', String(30), primary_key=True),
+    Column('clave', String(80), primary_key=True),
+    Column('valor', Float),
+    Column('actualizado', DateTime, default=ahora),
+    Column('quien', String(200)),
+)
+
 auditoria = Table(
     'auditoria', meta,
     Column('id', Integer, primary_key=True),

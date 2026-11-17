@@ -33,6 +33,11 @@
     h += '</div>' + (o.serie ? spark(o.serie) : '') + '</article>';
     return h;
   }
+  // Tasa contra la meta de Indicadores: cumple desde la meta, cerca desde el 90%; sin meta no hay pastilla
+  function contraMeta(valor, meta) {
+    if (valor == null || !meta) return null;
+    return ['Meta ' + Math.round(meta) + '%', valor >= meta ? 'cumple' : valor >= meta * 0.9 ? 'cerca' : 'falta', Math.max(4, Math.min(100, valor / meta * 100))];
+  }
   function seccion(titulo, sub, cuerpo, derecha) {
     var esc = S().esc;
     return '<section class="e22"><div class="e136"><div class="e19"><h2 class="titulo-2">' + esc(titulo) + '</h2>' + (sub ? '<p class="e44">' + esc(sub) + '</p>' : '') + '</div>' + (derecha || '') + '</div>' + cuerpo + '</section>';
@@ -80,7 +85,7 @@
       '<div class="grilla" style="--n:4">' +
       kpi({ nombre: 'Costo por lead', clave: true, valor: plata(k.costo_lead.valor), sub: 'vs ' + plata(k.costo_lead.anterior) + ' período ant.', vari: vari(k.costo_lead.cambio, true), serie: k.costo_lead.serie }) +
       kpi({ nombre: 'Costo por cita', clave: true, valor: plata(cc), sub: 'vs ' + plata(k.costo_cita.anterior) + ' período ant.', vari: vari(k.costo_cita.cambio, true), meta: metaCita, serie: k.costo_cita.serie }) +
-      kpi({ nombre: '% de asistencia', clave: true, valor: pctTxt(k.pct_asistencia.valor), sub: 'vs ' + pctTxt(k.pct_asistencia.anterior) + ' ant.', vari: vari(k.pct_asistencia.cambio, false), serie: k.pct_asistencia.serie }) +
+      kpi({ nombre: '% de asistencia', clave: true, valor: pctTxt(k.pct_asistencia.valor), sub: 'vs ' + pctTxt(k.pct_asistencia.anterior) + ' ant.', vari: vari(k.pct_asistencia.cambio, false), meta: contraMeta(k.pct_asistencia.valor, r.metas && r.metas.pct_asistencia), serie: k.pct_asistencia.serie }) +
       kpi({ nombre: 'Costo por asistencia', clave: true, valor: plata(k.costo_asistente.valor), sub: 'vs ' + plata(k.costo_asistente.anterior) + ' período ant.', vari: vari(k.costo_asistente.cambio, true), serie: k.costo_asistente.serie }) +
       '</div>');
     h += seccion('Funnel', 'gasto de anuncios → leads → citas que vienen de anuncios → asistieron (por fecha de la cita)',
@@ -110,7 +115,7 @@
     // Semáforo
     var sem = r.semaforo, total = 0; Object.keys(sem).forEach(function (e) { total += sem[e].length; });
     if (r.ambito === 'clientes') {
-      h += seccion('Semáforo de ' + voc.cuentas.toLowerCase(), total + ' ' + voc.cuentas.toLowerCase() + ' · por costo por cita creada (verde hasta ' + plata(obj) + ', rojo arriba de ' + plata(obj * 1.3) + ')',
+      h += seccion('Semáforo de ' + voc.cuentas.toLowerCase(), total + ' ' + voc.cuentas.toLowerCase() + ' · por costo por cita creada (verde hasta ' + plata(obj) + ', rojo arriba de ' + plata(r.objetivo_rojo) + ')',
         '<div class="caja borde-vivo"><div class="semaforo-barra">' + Object.keys(SEM).map(function (e) { return sem[e].length ? '<span style="flex:' + sem[e].length + ';background:' + SEM[e][1] + '"></span>' : ''; }).join('') + '</div>' +
         '<div class="grilla" style="--n:4">' + Object.keys(SEM).map(function (e) {
           return '<div class="e19"><div class="e64"><strong class="e91">' + punto(SEM[e][1]) + SEM[e][0] + '</strong><strong class="e118">' + sem[e].length + '</strong></div><span class="e12">' + (sem[e].length ? esc(sem[e].join(', ')) : '—') + '</span></div>';
@@ -138,7 +143,7 @@
     var barras = conCosto.length ? '<div class="e33">' + conCosto.map(function (f) {
       return '<div class="fin-cat"><span class="fin-cat-n">' + esc(f.nombre) + '</span><span class="rend-barra"><span style="width:' + Math.max(3, f.costo_cita / maxC * 100) + '%;background:' + SEM[f.estado][1] + ';box-shadow:none"></span></span><span class="fin-cat-v">' + plata(f.costo_cita) + '</span></div>';
     }).join('') + '</div>' : '<p class="vacio">Sin citas en el período.</p>';
-    h += '<div class="bloques">' + bloqueGraf('Costo por cita creada por ' + voc.cuenta.toLowerCase(), 'verde hasta ' + plata(obj) + ' · rojo arriba de ' + plata(obj * 1.3), barras) +
+    h += '<div class="bloques">' + bloqueGraf('Costo por cita creada por ' + voc.cuenta.toLowerCase(), 'verde hasta ' + plata(obj) + ' · rojo arriba de ' + plata(r.objetivo_rojo), barras) +
       bloqueGraf('Leads y citas por día', 'todas las ' + voc.cuentas.toLowerCase() + ' del filtro', tendencia(r.tendencia)) + '</div>';
     h += avisos(r);
     return h;
@@ -222,6 +227,6 @@
     mostrar(ultimo.menu, ultimo.negocio);
   });
 
-  window.MENUS_API = { panel: mostrar, trazabilidad: mostrar, 'ag-campanas': mostrar };
+  window.MENUS_API = Object.assign(window.MENUS_API || {}, { panel: mostrar, trazabilidad: mostrar, 'ag-campanas': mostrar });
   window.MENUS_API_SALIR = function () { ultimo = null; P.ambito = null; P.cuentas = null; P.filtro = 'todas'; };
 })();

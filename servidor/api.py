@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, abort, current_app, jsonify, request
 from sqlalchemy import insert, select, update
 
-from . import agenda, db, indicadores, metricas
+from . import agenda, db, indicadores, metricas, ventas
 from .config import NEGOCIOS
 from .seguridad import cuentas_visibles, datos_de_cuentas, requiere, usuario_actual
 
@@ -326,3 +326,152 @@ def resultado_guardar(negocio, cita_id):
     db.auditar(m, u['email'], 'resultado_cita', f'{negocio}:{cita_id}', dict(antes._mapping) if antes else None, nuevo)
     citas, _ = agenda.todas(m, negocio, cuentas, cfg['embudos'][clave]['paso'])
     return jsonify(next(c for c in citas if c['id'] == cita_id))
+
+
+# ---- Fase 3: registro de ventas (bitácora) y contactos ----
+
+def _mes_o_rango():
+    hoy = _hoy()
+    try:
+        if request.args.get('desde'):
+            desde = dt.date.fromisoformat(request.args['desde'])
+            hasta = dt.date.fromisoformat(request.args.get('hasta') or request.args['desde'])
+        else:
+            desde = hoy.replace(day=1)
+            hasta = (desde + dt.timedelta(days=32)).replace(day=1) - dt.timedelta(days=1)
+    except ValueError:
+        abort(400)
+    if hasta < desde or (hasta - desde).days > 400:
+        abort(400)
+    return desde, hasta
+
+
+@bp.get('/<negocio>/ventas')
+@requiere('admin', 'vendedor', 'operador')
+@datos_de_cuentas
+def ventas_ver(negocio):
+    cuentas = [c for c in cuentas_visibles(usuario_actual(), negocio) if not c['propia']]
+    desde, hasta = _mes_o_rango()
+    ids = {c['id'] for c in cuentas}
+    m = current_app.motor
+    datos = db.leer(m, 'datos:' + negocio)
+    r = ventas.calcular(negocio, ventas.listar(m, negocio, ids, desde, hasta), cuentas,
+                        ventas.pauta_por_cuenta(datos, ids, desde, hasta))
+    da, ha = desde - (hasta - desde) - dt.timedelta(days=1), desde - dt.timedelta(days=1)
+    r['anterior'] = ventas.calcular(negocio, ventas.listar(m, negocio, ids, da, ha), cuentas,
+                                    ventas.pauta_por_cuenta(datos, ids, da, ha))['resumen']
+    cfg = NEGOCIOS[negocio]
+    r.update({'hoy': _hoy().isoformat(), 'desde': desde.isoformat(), 'hasta': hasta.isoformat(), 'comision_pct': cfg.get('comision_pct', 0),
+              'closer_pct': cfg.get('closer_pct', 0), 'puede_borrar': usuario_actual()['rol'] == 'admin',
+              'cuentas_disponibles': [{'id': c['id'], 'nombre': c['nombre']} for c in cuentas]})
+    return jsonify(r)
+
+
+def _venta_limpia(cuerpo, ids, parcial=False):
+    if not isinstance(cuerpo, dict):
+        abort(400)
+    d = {}
+    if 'cuenta_id' in cuerpo or not parcial:
+        if cuerpo.get('cuenta_id') not in ids:
+            abort(400)
+        d['cuenta_id'] = cuerpo['cuenta_id']
+    if 'fecha' in cuerpo or not parcial:
+        try:
+            d['fecha'] = dt.date.fromisoformat(cuerpo.get('fecha') or '')
+        except (TypeError, ValueError):
+            abort(400)
+    if 'monto' in cuerpo or not parcial:
+        d['monto'] = _numero(cuerpo.get('monto'), 1e8)
+        if d['monto'] is None:
+            abort(400)
+    if 'costo' in cuerpo:
+        d['costo'] = _numero(cuerpo['costo'], 1e8)
+    for k, largo in (('contacto', 200), ('servicio', 200), ('notas', 2000), ('cita_id', 80), ('vendedor', 200)):
+        if k in cuerpo:
+            d[k] = _texto(cuerpo[k], largo)
+    if 'comision_cobrada' in cuerpo:
+        if not isinstance(cuerpo['comision_cobrada'], bool):
+            abort(400)
+        d['comision_cobrada'] = cuerpo['comision_cobrada']
+    if not d:
+        abort(400)
+    return d
+
+
+@bp.post('/<negocio>/ventas')
+@requiere('admin', 'vendedor', 'operador')
+@datos_de_cuentas
+def ventas_crear(negocio):
+    u = usuario_actual()
+    ids = {c['id'] for c in cuentas_visibles(u, negocio) if not c['propia']}
+    d = _venta_limpia(request.get_json(silent=True), ids)
+    if u['rol'] == 'vendedor':
+        d['vendedor'] = u['email']  # el closer registra a su nombre
+    if u['rol'] != 'admin':
+        d.pop('comision_cobrada', None)  # lo marca solo el admin
+    with current_app.motor.begin() as c:
+        nuevo = c.execute(insert(db.ventas).values(negocio=negocio, quien=u['email'], **d)).inserted_primary_key[0]
+    db.auditar(current_app.motor, u['email'], 'crear_venta', f'{negocio}:{nuevo}', None, d)
+    return jsonify(id=nuevo), 201
+
+
+@bp.patch('/<negocio>/ventas/<int:venta_id>')
+@requiere('admin', 'vendedor', 'operador')
+@datos_de_cuentas
+def ventas_editar(negocio, venta_id):
+    u = usuario_actual()
+    ids = {c['id'] for c in cuentas_visibles(u, negocio) if not c['propia']}
+    t = db.ventas
+    with current_app.motor.connect() as c:
+        antes = c.execute(select(t).where(t.c.id == venta_id, t.c.negocio == negocio, t.c.activo.is_(True))).first()
+    if not antes or antes.cuenta_id not in ids:
+        abort(404)
+    if u['rol'] != 'admin' and antes.quien != u['email']:
+        abort(403)  # cada uno corrige lo suyo; el admin, todo
+    cuerpo = request.get_json(silent=True)
+    if isinstance(cuerpo, dict) and cuerpo.get('borrar') is True:
+        if u['rol'] != 'admin':
+            abort(403)
+        d = {'activo': False}  # nunca se borra: se desactiva
+    else:
+        d = _venta_limpia(cuerpo, ids, parcial=True)
+        if u['rol'] != 'admin':
+            d.pop('comision_cobrada', None)
+            d.pop('vendedor', None)
+    with current_app.motor.begin() as c:
+        c.execute(update(t).where(t.c.id == venta_id).values(**d))
+    db.auditar(current_app.motor, u['email'], 'editar_venta', f'{negocio}:{venta_id}', dict(antes._mapping), d)
+    return jsonify(ok=True)
+
+
+@bp.get('/<negocio>/contactos')
+@requiere('admin', 'vendedor', 'operador')
+@datos_de_cuentas
+def contactos_ver(negocio):
+    u, cfg, clave, cuentas, citas, datos, hoy = _agenda_base(negocio)
+    q = (request.args.get('q') or '').strip().lower()
+    ids = {c['id'] for c in cuentas}
+    m = current_app.motor
+    vs = ventas.listar(m, negocio, ids, dt.date(2000, 1, 1), dt.date(2100, 1, 1))
+    personas = {}
+    for c in citas:
+        k = (c['cuenta_id'], c.get('contacto_id') or c['nombre'])
+        p = personas.setdefault(k, {'clave': '%s:%s' % k, 'nombre': c['nombre'], 'cuenta': c['cuenta'], 'cuenta_id': c['cuenta_id'],
+                                    'telefono': c['telefono'], 'email': c['email'], 'citas': [], 'ventas': []})
+        p['citas'].append(c)
+    for v in vs:
+        p = next((p for p in personas.values() if p['cuenta_id'] == v['cuenta_id'] and p['nombre'].lower() == (v['contacto'] or '').lower()), None)
+        if p is None:
+            k = (v['cuenta_id'], 'venta-%d' % v['id'])
+            nombres = {c['id']: c['nombre'] for c in cuentas}
+            p = personas.setdefault(k, {'clave': '%s:%s' % k, 'nombre': v['contacto'] or 'Sin nombre', 'cuenta': nombres.get(v['cuenta_id'], ''),
+                                        'cuenta_id': v['cuenta_id'], 'telefono': '', 'email': '', 'citas': [], 'ventas': []})
+        p['ventas'].append(ventas._publico(v))
+    lista = list(personas.values())
+    if q:
+        lista = [p for p in lista if q in p['nombre'].lower() or q in (p['telefono'] or '').lower() or q in (p['email'] or '').lower()]
+    for p in lista:
+        p['citas'].sort(key=lambda c: (c['fecha'], c['minuto']), reverse=True)
+        p['ultima'] = max([c['fecha'] for c in p['citas']] + [v['fecha'] for v in p['ventas']] or [''])
+    lista.sort(key=lambda p: p['ultima'], reverse=True)
+    return jsonify({'contactos': lista[:200], 'total': len(lista), 'demo': bool(datos and datos.get('demo'))})

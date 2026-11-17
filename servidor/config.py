@@ -60,6 +60,7 @@ NEGOCIOS = {
     'plastia': {
         'nombre': 'Plastia Partners',
         'corto': 'Plastia', 'cuentas': 'Clínicas', 'vendedor': 'Closer', 'moneda': 'USD',
+        'comision_pct': 25, 'closer_pct': 25,  # 25% de (venta − costos − pauta); el closer, 25% de eso
         'embudos': {
             'valoracion': {
                 'nombre': 'Valoración pagada',

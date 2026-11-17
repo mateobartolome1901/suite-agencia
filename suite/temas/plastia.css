@@ -2147,5 +2147,13 @@ body.tb-arrastrando, body.tb-arrastrando * { cursor: grabbing !important; user-s
 /* Opción elegida: fondo de acento y texto blanco (regla del kit) */
 .ficha-cita .e94[aria-pressed="true"] { background: var(--acento) !important; border-color: transparent !important; color: #FFFFFF !important; }
 
+/* Contactos: lista de filas (nombre · cuenta), como el original */
+.ct-lista { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+.ct-fila { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--borde); background: var(--tarjeta); color: var(--texto); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.ct-fila strong { font-weight: 600; }
+.ct-fila .rend-estado { margin-left: auto; }
+.ct-fila:hover { border-color: var(--borde-fuerte); background: var(--activo); }
+.cal-paso .fin-boton { margin-left: 8px; }
+
 /* Luces del fondo de este negocio (las del original usan el verde de estado como luz) */
 .app::before { background: radial-gradient(900px 620px at 88% -8%, rgba(143, 214, 193, 0.15), transparent 62%), radial-gradient(760px 560px at 22% 4%, rgba(31, 122, 102, 0.22), transparent 64%), radial-gradient(820px 640px at 4% 92%, rgba(224, 138, 88, 0.06), transparent 60%), radial-gradient(700px 520px at 96% 78%, rgba(31, 122, 102, 0.1), transparent 62%), linear-gradient(180deg, #10221E, #0B1715 65%); }

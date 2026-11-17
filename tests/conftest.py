@@ -36,6 +36,10 @@ def app(tmp_path):
     d = db.leer(m, 'datos:plastia')
     i = next(i for i, x in enumerate(d['citas']) if x[3] == clinica['id'] and x[4] == 'calificacion')
     a.cita_id = 'demo-%d' % i
+    with m.begin() as c:  # una venta cargada por el admin (el vendedor no la puede editar: no es suya)
+        a.venta_id = c.execute(insert(db.ventas).values(negocio='plastia', cuenta_id=clinica['id'], fecha=dt.date(2026, 11, 5), contacto='Ana Ejemplo',
+                                                        servicio='Rinoplastia', monto=5000, costo=1500, vendedor='closer@agencia.com',
+                                                        quien='admin@agencia.com', activo=True)).inserted_primary_key[0]
     return a
 
 

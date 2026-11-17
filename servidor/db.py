@@ -77,6 +77,26 @@ resultados = Table(
     Column('actualizado', DateTime, default=ahora),
 )
 
+# Registro de ventas: cirugías (Plastia) o cierres de los clientes (TPA). Nunca se borran: se desactivan.
+ventas = Table(
+    'ventas', meta,
+    Column('id', Integer, primary_key=True),
+    Column('negocio', String(30), nullable=False),
+    Column('cuenta_id', Integer, nullable=False),
+    Column('fecha', Date, nullable=False),
+    Column('contacto', String(200)),                       # nombre del paciente o lead
+    Column('servicio', String(200)),                       # cirugía, tratamiento, propiedad…
+    Column('monto', Float, nullable=False),                # venta
+    Column('costo', Float),                                # costos de la cirugía (Plastia)
+    Column('vendedor', String(200)),                       # email del closer que cerró
+    Column('cita_id', String(80)),
+    Column('notas', Text),
+    Column('comision_cobrada', Boolean, default=False),
+    Column('quien', String(200)),
+    Column('creado', DateTime, default=ahora),
+    Column('activo', Boolean, default=True),
+)
+
 auditoria = Table(
     'auditoria', meta,
     Column('id', Integer, primary_key=True),

@@ -54,7 +54,7 @@ def todas(motor, negocio, cuentas, paso):
         efectivo = (r and r['asistencia']) or estado
         a = anuncios[ia] if 0 <= ia < len(anuncios) else None
         salida.append({
-            'id': cita_id, 'fecha': fc, 'minuto': minuto, 'creada': creada, 'cuenta_id': cid, 'cuenta': nombres[cid],
+            'id': cita_id, 'contacto_id': p[2] if p else None, 'fecha': fc, 'minuto': minuto, 'creada': creada, 'cuenta_id': cid, 'cuenta': nombres[cid],
             'estado': efectivo, 'estado_crm': estado,
             'nombre': (p[4] if p and len(p) > 4 and p[4] else (p[1] if p else '')) or 'Sin nombre',
             'telefono': p[5] if p and len(p) > 5 else '', 'email': p[6] if p and len(p) > 6 else '',

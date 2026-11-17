@@ -29,6 +29,11 @@ Basada en el SOP «Plantilla de la Suite de Agencia» y en el kit visual de la s
 - Calendario de citas con Día / Semana / Mes (en celular, agenda en lista por día), indicadores de la agenda contra las metas de Indicadores y métricas secundarias.
 - Ficha de la cita (capa a la derecha): datos del contacto (nombre, teléfono, email, anuncio de origen) y **resultado de la llamada** (asistencia, califica, resultado, servicio y monto cotizado, próximo seguimiento, notas). Se guarda en la tabla `resultados` con auditoría; la asistencia marcada acá manda sobre el estado de GHL.
 - Seguimientos: columnas Vencidos / Hoy / Mañana / Esta semana / Más adelante / Sin fecha, con botones para posponer.
+
+**Fase 3 (contactos y ventas):**
+- Contactos (Pacientes / Leads): buscador por nombre, teléfono o email y el historial de cada uno (citas, resultado de cada llamada, ventas).
+- Bitácora (Plastia: cirugías; TPA: cierres de clientes): registrar y corregir ventas (tabla `ventas`, nunca se borran: se desactivan, con auditoría). Plastia: comisión 25% de (venta − costos − pauta del mes de cada clínica, nunca negativa) y closer 25% de esa comisión, con «por cobrar». TPA: volumen vendido y retorno sobre la pauta por cliente.
+
 - Pendiente: escribir el resultado de vuelta en GHL (cita, etapa del pipeline, notas), reprogramar, cambiar dueño y «Abrir chat»: necesitan los tokens de escritura de GHL.
 
 El resto de los menús muestra qué va a hacer y en qué fase entra. Plan de fases: F1 datos (GHL + Meta), F2 agenda, F3 contactos y ventas, F4 dinero, F5 comunicación, F6 IA, F7 portal y seguridad, F8 contenido.

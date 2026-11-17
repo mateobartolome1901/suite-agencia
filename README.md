@@ -17,13 +17,36 @@ Basada en el SOP «Plantilla de la Suite de Agencia» y en el kit visual de la s
 - Finanzas de TPA: pauta propia cargada a la tarjeta de un socio y transferencias del otro, con el saldo entre socios.
 - Vista celular (cajón lateral), sonidos y animaciones del original.
 
+**Fase 1 (servidor y datos):**
+- Servidor Flask con login (Google; en local, login de desarrollo), roles, CSRF, cabeceras de seguridad y filtro central por cuenta.
+- Worker que cada 15 minutos lee GHL (calendarios, citas, anuncio de origen del contacto), Meta Ads y YouTube (Google Ads) y publica `datos:<negocio>` sin datos personales. Sin credenciales publica datos de ejemplo.
+- Panel de campañas, Campañas propias (de cada negocio) y Trazabilidad con datos del servidor: KPI clave contra objetivo, funnel, semáforo, tabla por cuenta, veredicto por anuncio y glosario.
+- Tests: permisos (cada ruta × cada rol), métricas y conectores con respuestas simuladas.
+
+**Indicadores (Administración, solo admin):** el admin carga desde la suite los costos objetivo (campañas propias y de clientes, verde hasta / rojo arriba de), las tasas meta (agendamiento, asistencia, cierre) y, opcional, un objetivo por cuenta. Se guardan en la tabla `indicadores` (por negocio) con auditoría; el Panel de campañas y Trazabilidad los leen. Si una meta nunca se cargó, vale la de `servidor/config.py`.
+
+**Fase 2 (agenda):**
+- Calendario de citas con Día / Semana / Mes (en celular, agenda en lista por día), indicadores de la agenda contra las metas de Indicadores y métricas secundarias.
+- Ficha de la cita (capa a la derecha): datos del contacto (nombre, teléfono, email, anuncio de origen) y **resultado de la llamada** (asistencia, califica, resultado, servicio y monto cotizado, próximo seguimiento, notas). Se guarda en la tabla `resultados` con auditoría; la asistencia marcada acá manda sobre el estado de GHL.
+- Seguimientos: columnas Vencidos / Hoy / Mañana / Esta semana / Más adelante / Sin fecha, con botones para posponer.
+
+**Fase 3 (contactos y ventas):**
+- Contactos (Pacientes / Leads): buscador por nombre, teléfono o email y el historial de cada uno (citas, resultado de cada llamada, ventas).
+- Bitácora (Plastia: cirugías; TPA: cierres de clientes): registrar y corregir ventas (tabla `ventas`, nunca se borran: se desactivan, con auditoría). Plastia: comisión 25% de (venta − costos − pauta del mes de cada clínica, nunca negativa) y closer 25% de esa comisión, con «por cobrar». TPA: volumen vendido y retorno sobre la pauta por cliente.
+
+- Pendiente: escribir el resultado de vuelta en GHL (cita, etapa del pipeline, notas), reprogramar, cambiar dueño y «Abrir chat»: necesitan los tokens de escritura de GHL.
+
 El resto de los menús muestra qué va a hacer y en qué fase entra. Plan de fases: F1 datos (GHL + Meta), F2 agenda, F3 contactos y ventas, F4 dinero, F5 comunicación, F6 IA, F7 portal y seguridad, F8 contenido.
 
-**Stack previsto (igual al original):** Python + Flask, Postgres, frontend sin framework, hosting en Render (servicios web + worker + base), integraciones con Go High Level, Meta Ads, YouTube Ads, API de Claude y Google Drive.
+**Stack (igual al original):** Python + Flask, Postgres, frontend sin framework, hosting en Render (servicios web + worker + base), integraciones con Go High Level, Meta Ads, YouTube Ads, API de Claude y Google Drive.
 
 ## Estructura
 
 ```
+servidor/           Flask: login, API, métricas, worker y conectores (ghl, meta, youtube)
+tests/              pytest
+render.yaml         Render: web + worker + Postgres
+.env.ejemplo        variables de entorno (copiar a .env en local; en Render van en Environment)
 suite/
   index.html        página única
   app.js            menú, selector de negocio, Inicio y Finanzas
@@ -40,10 +63,16 @@ referencias/        kit visual de la suite original: capturas, clips, CSS, DESIG
 ## Correr en local
 
 ```bash
-python -m http.server 8765 --directory suite
+pip install -r requirements.txt
+python -m servidor.local
 ```
 
-Abrir http://localhost:8765. Después de tocar `marca.css` o `app.css`, regenerar los temas:
+Abrir http://localhost:8765 y entrar con `admin@local.test` (login de desarrollo, solo en local). Sin tokens, el worker publica datos de ejemplo. Tests:
+
+```bash
+python -m pytest -q tests
+```
+ Después de tocar `marca.css` o `app.css`, regenerar los temas:
 
 ```bash
 python suite/tools/temas.py
@@ -52,4 +81,5 @@ python suite/tools/temas.py
 ## Reglas
 
 - Lo visual es idéntico a la suite original; por negocio cambian **solo los colores** (`tools/temas.py`).
+- Toda ruta nueva de la API necesita su caso en `tests/test_permisos.py` (el test falla si falta).
 - Nunca poner tokens, claves ni datos de clientes en el repo: van en variables de entorno de Render.

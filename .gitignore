@@ -1,6 +1,7 @@
 # Secretos: nunca al repo (tokens de GHL, Meta, Anthropic, Google, Stripe van en variables de entorno de Render)
 .env
 .env.*
+!.env.ejemplo
 *.pem
 *.key
 
@@ -21,3 +22,6 @@ venv/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Base local
+suite-local.db

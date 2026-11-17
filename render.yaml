@@ -1,0 +1,47 @@
+# Render Blueprint: suite web + worker + Postgres. Los secretos se cargan en el panel de Render (sync: false).
+databases:
+  - name: suite-db
+    plan: basic-256mb
+    ipAllowList: []          # sin acceso desde internet: solo los servicios de Render
+
+services:
+  - type: web
+    name: suite-agencia
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt && python suite/tools/temas.py
+    startCommand: gunicorn "servidor:create_app()" --workers 2 --bind 0.0.0.0:$PORT
+    healthCheckPath: /ingresar
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: suite-db, property: connectionString }
+      - fromGroup: suite-comun
+
+  - type: worker
+    name: suite-worker
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m servidor.worker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: suite-db, property: connectionString }
+      - fromGroup: suite-comun
+
+envVarGroups:
+  - name: suite-comun
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMINS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: CRM_TOKENS
+        sync: false
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: ZONA_HORARIA
+        value: America/New_York

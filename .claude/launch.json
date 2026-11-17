@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "suite", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8765", "--directory", "suite"], "port": 8765 }
+    { "name": "suite", "runtimeExecutable": "python", "runtimeArgs": ["-m", "servidor.local"], "port": 8765 },
+    { "name": "suite-estatica", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8766", "--directory", "suite"], "port": 8766 }
   ]
 }

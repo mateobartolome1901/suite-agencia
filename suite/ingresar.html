@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ingresar · Suite de Agencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" id="tema" href="temas/plastia.css">
+<script src="tema.js"></script>
+</head>
+<body>
+<div class="app ingresar">
+  <main class="caja ini-bloque ingresar-caja">
+    <div class="e19">
+      <h1 class="titulo-1">Suite de Agencia</h1>
+      <span class="e30">Plastia Partners · Top Producer Acquisition</span>
+    </div>
+    <p class="rend-alerta" data-nivel="falta" id="error" hidden><span>Ese email no tiene acceso. Pedile al admin que te dé de alta.</span></p>
+    <a class="fin-boton ingresar-google" id="google" href="/auth/google" hidden>Ingresar con Google</a>
+    <form class="e33" method="post" action="/auth/dev" id="dev" hidden>
+      <label class="e5">Email (solo en local)<input class="e182" name="email" type="email" required autocomplete="email"></label>
+      <button class="fin-boton" type="submit">Entrar</button>
+    </form>
+    <p class="e12" id="nada" hidden>El login con Google todavía no está configurado (GOOGLE_CLIENT_ID).</p>
+  </main>
+</div>
+<script src="ingresar.js"></script>
+</body>
+</html>

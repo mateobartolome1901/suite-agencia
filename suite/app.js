@@ -3,7 +3,9 @@
   var HOY = new Date(2026, 10, 17), DIAS_MES = 30, AVANCE = HOY.getDate() / DIAS_MES;
   var MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   var estado = { negocio: leer('suite_negocio', 'plastia'), menu: (location.hash || '#resumen').slice(1), vista: 'mes', mes: HOY.getMonth(), anio: HOY.getFullYear(), grupos: JSON.parse(leer('suite_grupos', '{}')) };
+  var SESION = null; // la completa /api/sesion; sin servidor queda en null (vista de ejemplo)
   if (!NEGOCIOS[estado.negocio]) estado.negocio = 'plastia';
+  function negociosVisibles() { return SESION ? SESION.negocios.filter(function (n) { return NEGOCIOS[n]; }) : Object.keys(NEGOCIOS); }
 
   function leer(k, def) { try { var v = localStorage.getItem(k); return v === null ? def : v; } catch (e) { return def; } }
   function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
@@ -48,7 +50,7 @@
       '<button class="lateral-plegar" type="button" id="plegar" aria-label="Achicar el menú"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg></button></div>';
     html += '<div class="neg" data-pop="negocio"><button class="neg-btn" type="button" id="neg-btn" aria-haspopup="menu" aria-expanded="false" style="--ico:' + cfg.ico + '">' +
       '<span class="neg-sigla">' + cfg.sigla + '</span><span class="neg-txt"><strong>' + esc(cfg.nombre) + '</strong><span>' + esc(cfg.modeloTxt) + '</span></span><span class="neg-flecha">' + CHEV + '</span></button>' +
-      '<div class="pop" role="menu" id="neg-menu" hidden>' + Object.keys(NEGOCIOS).map(function (k) {
+      '<div class="pop" role="menu" id="neg-menu" hidden>' + negociosVisibles().map(function (k) {
         var n = NEGOCIOS[k];
         return '<button class="neg-op" type="button" role="menuitemradio" data-negocio="' + k + '" aria-checked="' + (k === estado.negocio) + '" style="--ico:' + n.ico + '"><span class="neg-sigla">' + n.sigla + '</span><span class="neg-txt"><strong>' + esc(n.nombre) + '</strong><span>' + esc(n.modeloTxt) + '</span></span></button>';
       }).join('') + '</div></div>';
@@ -64,7 +66,7 @@
       html += '<div class="nav-bloque"><button class="nav-grupo" type="button" data-grupo="' + esc(g.grupo) + '" aria-expanded="' + abierto + '">' + esc(g.grupo) + CHEV + '</button>' +
         '<div class="nav-sub"' + (abierto ? '' : ' hidden') + '>' + links + '</div></div>';
     });
-    html += '</nav><div class="lateral-pie"><span class="fase">Datos de ejemplo</span><button class="sonido-btn" type="button" id="sonido" data-sin-sonido aria-pressed="' + SONIDO.activo() + '">' +
+    html += '</nav><div class="lateral-pie">' + (SESION ? '<span class="e12">' + esc(SESION.email) + '</span><button class="sonido-btn" type="button" id="salir" data-sin-sonido>Salir</button>' : '<span class="fase">Datos de ejemplo</span>') + '<button class="sonido-btn" type="button" id="sonido" data-sin-sonido aria-pressed="' + SONIDO.activo() + '">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6"/></svg>Sonidos</button></div></div>';
     document.getElementById('lateral').innerHTML = html;
   }
@@ -287,6 +289,7 @@
   }
   function inicio() { var cfg = NEGOCIOS[estado.negocio], d = DEMO[estado.negocio]; return cfg.modelo === 'comision' ? inicioComision(cfg, d) : inicioFee(cfg, d); }
 
+  function existeMenu(id) { var hay = false; NEGOCIOS[estado.negocio].menus.forEach(function (g) { g.items.forEach(function (it) { if (it[0] === id) hay = true; }); }); return hay; }
   function titulo() { var t = 'Inicio'; NEGOCIOS[estado.negocio].menus.forEach(function (g) { g.items.forEach(function (it) { if (it[0] === estado.menu) t = it[1]; }); }); return t; }
   function render() {
     var cfg = NEGOCIOS[estado.negocio];
@@ -295,6 +298,12 @@
     document.title = titulo() + ' · ' + cfg.nombre;
     lateral();
     document.getElementById('movil-titulo').textContent = titulo();
+    if (window.MENUS_API_SALIR) window.MENUS_API_SALIR();
+    if (SESION && window.MENUS_API && MENUS_API[estado.menu] && existeMenu(estado.menu)) {
+      document.getElementById('principal').innerHTML = '<header><div class="e19"><h1 class="titulo-1">' + esc(titulo()) + '</h1><span class="e30">Cargando…</span></div></header>';
+      MENUS_API[estado.menu](estado.menu, estado.negocio);
+      return;
+    }
     document.getElementById('principal').innerHTML = estado.menu === 'resumen' ? inicio() : (estado.menu === 'finanzas' && cfg.socios.length > 1) ? finanzasSocios(cfg, DEMO[estado.negocio]) : enConstruccion(cfg, estado.menu);
     window.dcPostRender();
   }
@@ -320,6 +329,7 @@
       else { estado.mes += p; if (estado.mes < 0) { estado.mes = 11; estado.anio--; } if (estado.mes > 11) { estado.mes = 0; estado.anio++; } }
       render(); return;
     }
+    if (t.closest('#salir')) { fetch('/auth/salir', { method: 'POST', headers: { 'X-CSRF': SESION.csrf }, credentials: 'same-origin' }).then(function () { location.href = '/ingresar'; }); return; }
     if (t.closest('#sonido')) { var on = SONIDO.alternar(); t.closest('#sonido').setAttribute('aria-pressed', String(on)); return; }
     if (t.closest('#plegar')) { document.documentElement.classList.toggle('lat-mini'); guardar('suite_lat_mini', document.documentElement.classList.contains('lat-mini') ? '1' : '0'); return; }
     if (t.closest('#movil-menu-btn')) { document.documentElement.classList.add('movil-menu'); return; }
@@ -340,6 +350,18 @@
     document.documentElement.classList.remove('movil-menu');
   });
   window.addEventListener('hashchange', function () { estado.menu = (location.hash || '#resumen').slice(1); render(); window.scrollTo(0, 0); });
+  window.SUITE = { esc: esc, us: us, tarjeta: tarjeta, secItem: secItem, secundarias: secundarias, bloque: bloque,
+    negocio: function () { return estado.negocio; }, sesion: function () { return SESION; } };
   if (leer('suite_lat_mini', '0') === '1') document.documentElement.classList.add('lat-mini');
-  render();
+  // Con servidor: sesión obligatoria (sin sesión va a /ingresar). Sin servidor (archivo estático): vista de ejemplo.
+  fetch('/api/sesion', { credentials: 'same-origin' }).then(function (r) {
+    if (r.status === 401) { location.href = '/ingresar'; return null; }
+    return r.ok ? r.json() : null;
+  }).then(function (s) {
+    if (s) {
+      SESION = s;
+      if (negociosVisibles().indexOf(estado.negocio) < 0) estado.negocio = negociosVisibles()[0] || 'plastia';
+    }
+    render();
+  }).catch(function () { render(); });
 })();

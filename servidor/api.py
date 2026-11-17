@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, abort, current_app, jsonify, request
 from sqlalchemy import insert, select, update
 
-from . import db, indicadores, metricas
+from . import agenda, db, indicadores, metricas
 from .config import NEGOCIOS
 from .seguridad import cuentas_visibles, datos_de_cuentas, requiere, usuario_actual
 
@@ -211,3 +211,118 @@ def indicadores_guardar(negocio):
                           .values(objetivo_costo_cita=v))
     db.auditar(m, usuario_actual()['email'], 'editar_indicadores', negocio, antes, {'valores': limpios, 'cuentas': por_cuenta})
     return jsonify(_indicadores_respuesta(negocio))
+
+
+# ---- Agenda (fase 2): calendario, ficha con resultado de la llamada y seguimientos ----
+
+def _agenda_base(negocio):
+    u = usuario_actual()
+    cfg = NEGOCIOS[negocio]
+    clave = request.args.get('embudo') or next(iter(cfg['embudos']))
+    if clave not in cfg['embudos']:
+        abort(400)
+    cuentas = [c for c in cuentas_visibles(u, negocio) if not c['propia']]
+    pedidas = request.args.get('cuentas')
+    if pedidas:
+        ids = {int(x) for x in pedidas.split(',') if x.strip().isdigit()}
+        cuentas = [c for c in cuentas if c['id'] in ids]
+    citas, datos = agenda.todas(current_app.motor, negocio, cuentas, cfg['embudos'][clave]['paso'])
+    hoy = dt.date.fromisoformat(datos['hoy']) if datos and datos.get('demo') else _hoy()
+    return u, cfg, clave, cuentas, citas, datos, hoy
+
+
+@bp.get('/<negocio>/agenda')
+@requiere('admin', 'vendedor', 'operador')
+@datos_de_cuentas
+def agenda_ver(negocio):
+    u, cfg, clave, cuentas, citas, datos, hoy = _agenda_base(negocio)
+    try:
+        if request.args.get('desde'):
+            desde = dt.date.fromisoformat(request.args['desde'])
+            hasta = dt.date.fromisoformat(request.args.get('hasta') or request.args['desde'])
+        else:
+            desde = hoy - dt.timedelta(days=hoy.weekday())
+            hasta = desde + dt.timedelta(days=6)
+    except ValueError:
+        abort(400)
+    if hasta < desde or (hasta - desde).days > 45:
+        abort(400)
+    metas = dict(indicadores.para_panel(current_app.motor, negocio, 'clientes', clave)['metas'])
+    metas['pct_cierre'] = indicadores.valores(current_app.motor, negocio)['emb_%s_pct_cierre' % clave]
+    r = agenda.indicadores(citas, desde, hasta, hoy, metas)
+    d0, d1 = desde.isoformat(), hasta.isoformat()
+    r.update({'citas': [c for c in citas if d0 <= c['fecha'] <= d1], 'desde': d0, 'hasta': d1, 'hoy': hoy.isoformat(),
+              'embudo': cfg['embudos'][clave]['nombre'], 'demo': bool(datos and datos.get('demo')), 'sin_datos': datos is None,
+              'puede_editar': u['rol'] in ('admin', 'vendedor'),
+              'cuentas_disponibles': [{'id': c['id'], 'nombre': c['nombre'], 'grupo': c['grupo']} for c in cuentas]})
+    return jsonify(r)
+
+
+@bp.get('/<negocio>/seguimientos')
+@requiere('admin', 'vendedor')
+@datos_de_cuentas
+def seguimientos_ver(negocio):
+    u, cfg, clave, cuentas, citas, datos, hoy = _agenda_base(negocio)
+    r = agenda.seguimientos(citas, hoy)
+    r.update({'hoy': hoy.isoformat(), 'embudo': cfg['embudos'][clave]['nombre'], 'demo': bool(datos and datos.get('demo')),
+              'puede_editar': True})
+    return jsonify(r)
+
+
+def _texto(v, largo):
+    if v is None:
+        return None
+    if not isinstance(v, str):
+        abort(400)
+    return v.strip()[:largo]
+
+
+@bp.post('/<negocio>/citas/<cita_id>/resultado')
+@requiere('admin', 'vendedor')
+@datos_de_cuentas
+def resultado_guardar(negocio, cita_id):
+    u, cfg, clave, cuentas, citas, datos, hoy = _agenda_base(negocio)
+    cita = next((c for c in citas if c['id'] == cita_id), None)
+    if not cita:
+        abort(404)  # no existe o es de una cuenta que no ve
+    cuerpo = request.get_json(silent=True)
+    if not isinstance(cuerpo, dict):
+        abort(400)
+    nuevo = {}
+    if 'asistencia' in cuerpo:
+        if cuerpo['asistencia'] not in agenda.ASISTENCIAS + (None,):
+            abort(400)
+        nuevo['asistencia'] = cuerpo['asistencia']
+    if 'califica' in cuerpo:
+        if cuerpo['califica'] not in (True, False, None):
+            abort(400)
+        nuevo['califica'] = cuerpo['califica']
+    if 'resultado' in cuerpo:
+        if cuerpo['resultado'] not in agenda.RESULTADOS + (None,):
+            abort(400)
+        nuevo['resultado'] = cuerpo['resultado']
+    if 'servicio' in cuerpo:
+        nuevo['servicio'] = _texto(cuerpo['servicio'], 200)
+    if 'notas' in cuerpo:
+        nuevo['notas'] = _texto(cuerpo['notas'], 4000)
+    if 'monto' in cuerpo:
+        nuevo['monto'] = _numero(cuerpo['monto'], 1e8)
+    if 'proximo' in cuerpo:
+        try:
+            nuevo['proximo'] = dt.date.fromisoformat(cuerpo['proximo']) if cuerpo['proximo'] else None
+        except (TypeError, ValueError):
+            abort(400)
+    if not nuevo:
+        abort(400)
+    t = db.resultados
+    m = current_app.motor
+    with m.begin() as c:
+        antes = c.execute(select(t).where(t.c.negocio == negocio, t.c.cita_id == cita_id)).first()
+        if antes:
+            c.execute(update(t).where(t.c.negocio == negocio, t.c.cita_id == cita_id)
+                      .values(quien=u['email'], actualizado=db.ahora(), **nuevo))
+        else:
+            c.execute(insert(t).values(negocio=negocio, cita_id=cita_id, cuenta_id=cita['cuenta_id'], quien=u['email'], **nuevo))
+    db.auditar(m, u['email'], 'resultado_cita', f'{negocio}:{cita_id}', dict(antes._mapping) if antes else None, nuevo)
+    citas, _ = agenda.todas(m, negocio, cuentas, cfg['embudos'][clave]['paso'])
+    return jsonify(next(c for c in citas if c['id'] == cita_id))

@@ -78,7 +78,8 @@ def armar(cfg, negocio, cuentas, hoy, meta=None, youtube=None, crear_ghl=None):
                 else:
                     ia = anuncio(c['id'], '', o['nombre'], o['campana'], '', 'meta')
                 citas.append([x['fecha'], x['minuto'], x['creada'], c['id'], x['tipo'], x['estado'], ia])
-                privado.append([x['id'], x['titulo'], x['contacto_id'], loc])
+                # alineado con citas (mismo índice): datos personales que solo sirve el servidor a quien tenga permiso
+                privado.append([x['id'], x['titulo'], x['contacto_id'], loc, x.get('nombre', ''), x.get('telefono', ''), x.get('email', '')])
         except ghl_mod.ErrorCRM as e:
             avisos.append(f'{c["nombre"]}: {e}')
 
@@ -96,7 +97,8 @@ def una_lectura(cfg, motor):
     for negocio in NEGOCIOS:
         if cfg.DATOS_DEMO:
             demo.sembrar_cuentas(motor, negocio)
-            datos, privado, avisos = demo.datos(negocio, db.cuentas_de(motor, negocio), hoy), {'citas': []}, []
+            datos = demo.datos(negocio, db.cuentas_de(motor, negocio), hoy)
+            privado, avisos = demo.privado(datos), []
         else:
             datos, privado, avisos = armar(cfg, negocio, db.cuentas_de(motor, negocio), hoy, meta, yt, ghl_mod.GHL)
         db.publicar(motor, 'datos:' + negocio, datos)

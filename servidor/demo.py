@@ -78,3 +78,19 @@ def _cita(rnd, citas, creada, cuenta_id, paso, ia, hoy, proximos):
     else:
         estado = 'confirmada'
     citas.append([fecha.isoformat(), rnd.choice(range(9 * 60, 19 * 60, 30)), creada.isoformat(), cuenta_id, paso, estado, ia])
+
+
+NOMBRES = ['Valeria', 'Martín', 'Camila', 'Mateo', 'Sofía', 'Lucas', 'Elena', 'Diego', 'Paula', 'Andrés', 'Laura', 'Tomás',
+           'Mariana', 'Gabriel', 'Lucía', 'Hugo', 'Carla', 'Iván']
+APELLIDOS = ['Ejemplo', 'Demo', 'Prueba', 'Muestra', 'Ficticio', 'Modelo']
+
+
+def privado(datos):
+    """Nombres, teléfonos y emails inventados, alineados con datos['citas'] (mismo índice)."""
+    rnd = random.Random('privado' + datos['negocio'])
+    filas = []
+    for i, _c in enumerate(datos['citas']):
+        n, a = rnd.choice(NOMBRES), rnd.choice(APELLIDOS)
+        filas.append(['demo-%d' % i, 'Cita', 'demo-contacto-%d' % i, '', '%s %s %s.' % (n, a, chr(65 + i % 26)),
+                      '+1 555 01%02d' % (i % 100), '%s.%s@ejemplo.test' % (n.lower(), i)])
+    return {'citas': filas}

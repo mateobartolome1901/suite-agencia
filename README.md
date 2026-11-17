@@ -25,6 +25,12 @@ Basada en el SOP «Plantilla de la Suite de Agencia» y en el kit visual de la s
 
 **Indicadores (Administración, solo admin):** el admin carga desde la suite los costos objetivo (campañas propias y de clientes, verde hasta / rojo arriba de), las tasas meta (agendamiento, asistencia, cierre) y, opcional, un objetivo por cuenta. Se guardan en la tabla `indicadores` (por negocio) con auditoría; el Panel de campañas y Trazabilidad los leen. Si una meta nunca se cargó, vale la de `servidor/config.py`.
 
+**Fase 2 (agenda):**
+- Calendario de citas con Día / Semana / Mes (en celular, agenda en lista por día), indicadores de la agenda contra las metas de Indicadores y métricas secundarias.
+- Ficha de la cita (capa a la derecha): datos del contacto (nombre, teléfono, email, anuncio de origen) y **resultado de la llamada** (asistencia, califica, resultado, servicio y monto cotizado, próximo seguimiento, notas). Se guarda en la tabla `resultados` con auditoría; la asistencia marcada acá manda sobre el estado de GHL.
+- Seguimientos: columnas Vencidos / Hoy / Mañana / Esta semana / Más adelante / Sin fecha, con botones para posponer.
+- Pendiente: escribir el resultado de vuelta en GHL (cita, etapa del pipeline, notas), reprogramar, cambiar dueño y «Abrir chat»: necesitan los tokens de escritura de GHL.
+
 El resto de los menús muestra qué va a hacer y en qué fase entra. Plan de fases: F1 datos (GHL + Meta), F2 agenda, F3 contactos y ventas, F4 dinero, F5 comunicación, F6 IA, F7 portal y seguridad, F8 contenido.
 
 **Stack (igual al original):** Python + Flask, Postgres, frontend sin framework, hosting en Render (servicios web + worker + base), integraciones con Go High Level, Meta Ads, YouTube Ads, API de Claude y Google Drive.

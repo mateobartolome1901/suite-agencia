@@ -2,7 +2,7 @@
 import datetime as dt
 import json
 
-from sqlalchemy import (JSON, Boolean, Column, DateTime, Float, Integer, MetaData, String, Table, Text, create_engine,
+from sqlalchemy import (JSON, Boolean, Column, Date, DateTime, Float, Integer, MetaData, String, Table, Text, create_engine,
                         insert, select, update)
 
 meta = MetaData()
@@ -58,6 +58,23 @@ indicadores = Table(
     Column('valor', Float),
     Column('actualizado', DateTime, default=ahora),
     Column('quien', String(200)),
+)
+
+# Resultado de la llamada de cada cita (lo carga el admin o el vendedor en la ficha). Da origen a Seguimientos.
+resultados = Table(
+    'resultados', meta,
+    Column('negocio', String(30), primary_key=True),
+    Column('cita_id', String(80), primary_key=True),       # id de la cita en GHL
+    Column('cuenta_id', Integer, nullable=False),
+    Column('asistencia', String(20)),                      # asistio, no_asistio, cancelada (manda sobre GHL)
+    Column('califica', Boolean),
+    Column('resultado', String(30)),                       # avanza, pendiente, seguimiento, no_interesado, perdido, no_califica
+    Column('servicio', String(200)),
+    Column('monto', Float),
+    Column('proximo', Date),                               # próximo seguimiento
+    Column('notas', Text),
+    Column('quien', String(200)),
+    Column('actualizado', DateTime, default=ahora),
 )
 
 auditoria = Table(

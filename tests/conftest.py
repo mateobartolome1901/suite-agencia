@@ -22,7 +22,9 @@ def app(tmp_path):
     for n in ('plastia', 'tpa'):
         demo.sembrar_cuentas(m, n)
         cuentas = db.cuentas_de(m, n)
-        db.publicar(m, 'datos:' + n, demo.datos(n, cuentas, HOY))
+        d = demo.datos(n, cuentas, HOY)
+        db.publicar(m, 'datos:' + n, d)
+        db.publicar(m, 'privado:' + n, demo.privado(d))
     plastia = db.cuentas_de(m, 'plastia')
     clinica = [c for c in plastia if not c['propia']][0]
     with m.begin() as c:
@@ -31,6 +33,9 @@ def app(tmp_path):
         c.execute(insert(db.usuarios).values(email='doctor@clinica.com', nombre='Doctor', rol='operador', negocios=['plastia'], cuentas=[clinica['id']], menus=[], activo=True))
         c.execute(insert(db.usuarios).values(email='baja@agencia.com', nombre='Baja', rol='admin', negocios=['plastia'], cuentas=[], menus=[], activo=False))
     a.clinica = clinica
+    d = db.leer(m, 'datos:plastia')
+    i = next(i for i, x in enumerate(d['citas']) if x[3] == clinica['id'] and x[4] == 'calificacion')
+    a.cita_id = 'demo-%d' % i
     return a
 
 

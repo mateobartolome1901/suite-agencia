@@ -11,7 +11,7 @@ var NEGOCIOS = {
     ico: '#8FD6C1',
     logo: '<img src="logo-plastia.svg?v=2" alt="Plastia Partners" width="148" height="52">',
     socios: [{ nombre: 'Mateo', pct: 100 }],
-    voc: { cuenta: 'Clínica', cuentas: 'Clínicas', contacto: 'Paciente', contactos: 'Pacientes', vendedor: 'Closer', vendedores: 'Closers', servicio: 'Cirugía', servicios: 'Cirugías', citaPrincipal: 'Valoración', calificacion: 'Llamada de evaluación', compromiso: 'Anticipo' },
+    voc: { cuenta: 'Clínica', cuentas: 'Clínicas', contacto: 'Paciente', contactos: 'Pacientes', vendedor: 'Closer', vendedores: 'Closers', servicio: 'Cirugía', servicios: 'Cirugías', citaPrincipal: 'Valoración', citasPrincipales: 'Valoraciones', calificacion: 'Llamada de evaluación', compromiso: 'Anticipo' },
     cobro: { setup: 750, pctAgencia: 25, pctCloser: 25 },
     menus: [
       { grupo: null, items: [['resumen', 'Inicio', 'casa']] },
@@ -37,7 +37,7 @@ var NEGOCIOS = {
       '<text x="60" y="25" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="15.5" fill="#F3F3F3" letter-spacing=".2">TOP PRODUCER</text>' +
       '<text x="61" y="41" font-family="Space Grotesk, sans-serif" font-weight="600" font-size="8.6" fill="#FF4040" letter-spacing="3.05">ACQUISITION</text></svg>',
     socios: [{ nombre: 'Mateo', pct: 50 }, { nombre: 'Luis', pct: 50 }],
-    voc: { cuenta: 'Cliente', cuentas: 'Clientes', contacto: 'Lead', contactos: 'Leads', vendedor: 'Setter', vendedores: 'Setters', servicio: 'Servicio', servicios: 'Servicios', citaPrincipal: 'Cita principal', calificacion: 'Llamada de calificación', compromiso: 'Compromiso' },
+    voc: { cuenta: 'Cliente', cuentas: 'Clientes', contacto: 'Lead', contactos: 'Leads', vendedor: 'Setter', vendedores: 'Setters', servicio: 'Servicio', servicios: 'Servicios', citaPrincipal: 'Cita principal', citasPrincipales: 'Citas principales', calificacion: 'Llamada de calificación', compromiso: 'Compromiso' },
     cobro: { setup: 4000, fee: 750 },
     menus: [
       { grupo: null, items: [['resumen', 'Inicio', 'casa']] },

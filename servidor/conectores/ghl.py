@@ -113,10 +113,16 @@ def leer_cuenta(cliente, cuenta, reglas, desde, hasta, zona, cache_origen=None):
             cid = ev.get('contactId')
             if cid and cid not in cache_origen:
                 try:
-                    cache_origen[cid] = origen_anuncio(cliente.contacto(cid))
+                    k = cliente.contacto(cid)
+                    k = k.get('contact', k) if isinstance(k, dict) else {}
+                    nombre = (k.get('name') or ' '.join(x for x in (k.get('firstName'), k.get('lastName')) if x)).strip()
+                    cache_origen[cid] = {'origen': origen_anuncio(k), 'nombre': nombre,
+                                         'telefono': k.get('phone') or '', 'email': k.get('email') or ''}
                 except ErrorCRM:
                     cache_origen[cid] = None
+            k = cache_origen.get(cid) or {}
             salida.append({'id': ev.get('id'), 'fecha': fecha, 'minuto': minuto, 'creada': creada, 'tipo': tipo,
                            'estado': ESTADOS.get((ev.get('appointmentStatus') or '').lower(), 'confirmada'),
-                           'contacto_id': cid, 'origen': cache_origen.get(cid), 'titulo': ev.get('title', '')})
+                           'contacto_id': cid, 'origen': k.get('origen'), 'titulo': ev.get('title', ''),
+                           'nombre': k.get('nombre', ''), 'telefono': k.get('telefono', ''), 'email': k.get('email', '')})
     return salida

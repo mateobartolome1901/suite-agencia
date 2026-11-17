@@ -13,13 +13,17 @@ CASOS = {
     '/api/<negocio>/cuentas#POST': ('POST', {'anon': 401, 'admin': 201, 'vendedor': 403, 'operador': 403}),
     '/api/<negocio>/cuentas/<int:cuenta_id>': ('PATCH', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
     '/api/<negocio>/indicadores': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
+    '/api/<negocio>/agenda': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 200}),
+    '/api/<negocio>/seguimientos': ('GET', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 403}),
+    '/api/<negocio>/citas/<cita_id>/resultado': ('POST', {'anon': 401, 'admin': 200, 'vendedor': 200, 'operador': 403}),
     '/api/<negocio>/indicadores#PUT': ('PUT', {'anon': 401, 'admin': 200, 'vendedor': 403, 'operador': 403}),
 }
 EXCLUIDAS = {'/auth/salir'}  # escritura sin datos de cuentas: probada aparte
 
 
 def _url(regla, app):
-    return regla.split('#')[0].replace('<negocio>', 'plastia').replace('<int:cuenta_id>', str(app.clinica['id']))
+    return (regla.split('#')[0].replace('<negocio>', 'plastia').replace('<int:cuenta_id>', str(app.clinica['id']))
+            .replace('<cita_id>', app.cita_id))
 
 
 def test_todas_las_rutas_tienen_caso(app):
@@ -35,7 +39,8 @@ def test_permisos_por_rol(app, regla, rol):
     email = {'admin': 'admin@agencia.com', 'vendedor': 'closer@agencia.com', 'operador': 'doctor@clinica.com'}.get(rol)
     cli = entrar(app, email) if email else app.test_client()
     cli.csrf = getattr(cli, 'csrf', '')
-    cuerpo = {'nombre': 'Clínica nueva'} if metodo in ('POST', 'PATCH') else {'valores': {}} if metodo == 'PUT' else None
+    cuerpo = ({'asistencia': 'asistio'} if 'resultado' in regla else {'nombre': 'Clínica nueva'} if metodo in ('POST', 'PATCH')
+              else {'valores': {}} if metodo == 'PUT' else None)
     r = cli.open(_url(regla, app), method=metodo, json=cuerpo, headers={'X-CSRF': cli.csrf})
     assert r.status_code == esperado[rol], (regla, rol, r.status_code)
 

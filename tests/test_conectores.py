@@ -116,3 +116,13 @@ def test_varios_tokens_de_meta_cada_cuenta_usa_el_suyo(monkeypatch):
     m = Meta(['tok-a', 'tok-b'], sesion=s)
     assert m.moneda('2') == 'COP'
     assert s.pedidos[-1][1]['access_token'] == 'tok-b'
+
+
+def test_origen_desde_utm_en_campos_personalizados_y_contactos_de_prueba():
+    campos = {'f1': 'UTM campaign', 'f2': 'UTM content (anuncio)', 'f3': 'Ciudad'}
+    k = {'attributionSource': {'sessionSource': 'CRM Workflows', 'medium': 'Manual'},
+         'customFields': [{'id': 'f1', 'value': 'PLASTIA | FRÍO'}, {'id': 'f2', 'value': 'V1B | La factura'},
+                          {'id': 'f3', 'value': 'Córdoba'}]}
+    assert ghl.origen_anuncio(k, campos) == {'campana': 'PLASTIA | FRÍO', 'nombre': 'V1B | La factura'}
+    assert ghl.origen_anuncio(k) is None  # sin los nombres de los campos no se adivina
+    assert ghl.es_prueba({'tags': ['lead agencia', 'Prueba']}) and not ghl.es_prueba({'tags': ['calificado']})

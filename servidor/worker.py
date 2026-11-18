@@ -34,7 +34,7 @@ def armar(cfg, negocio, cuentas, hoy, meta=None, youtube=None, crear_ghl=None, t
     def anuncio(cuenta_id, ad_id, nombre, campana, conjunto, plataforma):
         if ad_id and ad_id in por_id:
             return por_id[ad_id]
-        k = (cuenta_id, campana, nombre)
+        k = (cuenta_id, ghl_mod.normalizar(campana), ghl_mod.normalizar(nombre))  # el UTM puede venir con otras mayúsculas
         if not ad_id and k in por_nombre:
             return por_nombre[k]
         anuncios.append({'id': ad_id or '', 'nombre': nombre, 'campana': campana, 'conjunto': conjunto,

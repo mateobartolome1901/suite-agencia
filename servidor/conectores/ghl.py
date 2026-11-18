@@ -66,6 +66,14 @@ class GHL:
     def contacto(self, contacto_id):
         return self._get('/contacts/' + contacto_id, '2021-07-28').get('contact', {})
 
+    def campos(self, location_id):
+        """Campos personalizados de la subcuenta: {id: nombre}. Si no hay permiso, vacío (no corta la lectura)."""
+        try:
+            d = self._get(f'/locations/{location_id}/customFields', '2021-07-28')
+        except ErrorCRM:
+            return {}
+        return {x['id']: x.get('name', '') for x in d.get('customFields', []) if x.get('id')}
+
     # ---- Conversaciones (necesita conversations.readonly / conversations/message.write) ----
     def conversaciones(self, location_id, limite=40):
         return self._get('/conversations/search', '2021-04-15', locationId=location_id, limit=limite,
@@ -83,9 +91,32 @@ class GHL:
         return r.json()
 
 
-def origen_anuncio(contacto):
+def _utm_de_campos(contacto, campos):
+    """UTM guardados en campos personalizados por un workflow (formularios de Meta que entran por webhook)."""
+    utm = {}
+    for f in contacto.get('customFields') or []:
+        n = normalizar(campos.get(f.get('id'), ''))
+        v = f.get('value') if f.get('value') not in (None, '') else f.get('fieldValue')
+        if not v or not isinstance(v, (str, int, float)):
+            continue
+        v = str(v).strip()
+        if 'utm' in n and 'campaign' in n or n in ('campana', 'campaña'):
+            utm.setdefault('campaign', v)
+        elif 'utm' in n and 'content' in n or 'anuncio' in n and 'utm' in n:
+            utm.setdefault('utmContent', v)
+        elif n in ('ad id', 'utm id', 'utm ad id', 'id del anuncio'):
+            utm.setdefault('adId', v)
+    return utm
+
+
+def es_prueba(contacto):
+    """Contactos de prueba (etiqueta «prueba»/«test»): no cuentan en los números."""
+    return any(normalizar(t) in ('prueba', 'test', 'testing') for t in (contacto.get('tags') or []))
+
+
+def origen_anuncio(contacto, campos=None):
     """ID del anuncio (o campaña + nombre) mirando la primera y la última atribución: al agendar, GHL pisa la última
-    con «calendar», así que la primera suele ser la buena."""
+    con «calendar», así que la primera suele ser la buena. Si no hay, los UTM de los campos personalizados."""
     for clave in ('attributionSource', 'lastAttributionSource'):
         a = contacto.get(clave) or {}
         ad_id = a.get('utmAdId') or a.get('adId') or a.get('ad_id') or a.get('fbAdId')
@@ -95,6 +126,11 @@ def origen_anuncio(contacto):
         nombre = a.get('utmContent') or a.get('adName')
         if campana and nombre:
             return {'campana': campana, 'nombre': nombre}
+    u = _utm_de_campos(contacto, campos or {})
+    if u.get('adId'):
+        return {'id': u['adId']}
+    if u.get('campaign') and u.get('utmContent'):
+        return {'campana': u['campaign'], 'nombre': u['utmContent']}
     return None
 
 
@@ -116,6 +152,7 @@ def leer_cuenta(cliente, cuenta, reglas, desde, hasta, zona, cache_origen=None):
     cache_origen = {} if cache_origen is None else cache_origen
     salida = []
     elegidos = {c['id']: c.get('tipo') for c in (cuenta.get('calendarios') or []) if c.get('id')}
+    campos = cliente.campos(cuenta['crm_location_id']) if hasattr(cliente, 'campos') else {}
     for cal in cliente.calendarios(cuenta['crm_location_id']):
         if elegidos:  # elegidos a mano en la ficha de la cuenta: solo esos, con el tipo elegido
             tipo = elegidos.get(cal.get('id'))
@@ -136,11 +173,13 @@ def leer_cuenta(cliente, cuenta, reglas, desde, hasta, zona, cache_origen=None):
                     k = cliente.contacto(cid)
                     k = k.get('contact', k) if isinstance(k, dict) else {}
                     nombre = (k.get('name') or ' '.join(x for x in (k.get('firstName'), k.get('lastName')) if x)).strip()
-                    cache_origen[cid] = {'origen': origen_anuncio(k), 'nombre': nombre,
+                    cache_origen[cid] = {'origen': origen_anuncio(k, campos), 'nombre': nombre, 'prueba': es_prueba(k),
                                          'telefono': k.get('phone') or '', 'email': k.get('email') or ''}
                 except ErrorCRM:
                     cache_origen[cid] = None
             k = cache_origen.get(cid) or {}
+            if k.get('prueba'):
+                continue
             salida.append({'id': ev.get('id'), 'fecha': fecha, 'minuto': minuto, 'creada': creada, 'tipo': tipo,
                            'estado': ESTADOS.get((ev.get('appointmentStatus') or '').lower(), 'confirmada'),
                            'contacto_id': cid, 'origen': k.get('origen'), 'titulo': ev.get('title', ''),

@@ -175,7 +175,7 @@
       S().secItem('Reprogramadas', String(s.reprogramadas), '% reprogramación', s.agendadas ? Math.round(s.reprogramadas / s.agendadas * 100) : null),
       S().secItem('Canceladas', String(s.canceladas), '% cancelación', pas ? Math.round(s.canceladas / pas * 100) : null),
       S().secItem('Citas pasadas', String(pas), 'hasta ahora, marcadas o no'),
-      S().secItem('Citas pendientes', String(s.pendientes_7), s.pendientes_hoy + ' hoy · ' + s.pendientes_7 + ' en 7 días'),
+      S().secItem('Próximas citas', String(s.pendientes_7), s.pendientes_hoy + ' hoy · ' + s.pendientes_7 + ' de hoy a 7 días'),
       S().secItem('Sin marcar', String(s.sin_marcar), 'ya pasaron y siguen sin estado'),
       S().secItem('Seguimientos activos', String(s.seguimientos), s.vencidos + ' vencidos')
     ], ['Ver seguimientos', A.ambito === 'agencia' ? 'ag-seguimientos' : 'seguimientos']);

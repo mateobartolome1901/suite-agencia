@@ -35,6 +35,25 @@ def _res_publico(r):
             'quien': r['quien'], 'actualizado': r['actualizado'].isoformat() if r['actualizado'] else None}
 
 
+def datos_con_marcas(motor, negocio):
+    """Los datos del worker con el estado de cada cita tal como quedó marcado en la suite (manda sobre GHL).
+    Todas las pantallas leen de acá, así Campañas, Ventas, Agenda e Inicio cuentan lo mismo."""
+    datos = db.leer(motor, 'datos:' + negocio)
+    if not datos:
+        return datos
+    priv = (db.leer(motor, 'privado:' + negocio) or {}).get('citas') or []
+    marcas = {k: r['asistencia'] for k, r in resultados_de(motor, negocio).items() if r.get('asistencia')}
+    if not marcas:
+        return datos
+    citas = []
+    for i, c in enumerate(datos['citas']):
+        p = priv[i] if i < len(priv) else None
+        cita_id = p[0] if p and p[0] else 'cita-%d' % i
+        m = marcas.get(cita_id)
+        citas.append(c[:5] + [m] + c[6:] if m else c)
+    return {**datos, 'citas': citas}
+
+
 def todas(motor, negocio, cuentas, paso):
     """Todas las citas del paso para las cuentas dadas (ya filtradas por permisos), con datos personales y resultado."""
     datos = db.leer(motor, 'datos:' + negocio)
@@ -94,7 +113,7 @@ def indicadores(citas, desde, hasta, hoy, metas):
     kpi = {k: {'valor': act[k], 'anterior': ant[k], 'cambio': _cambio(cmp_[k], ant[k])}
            for k in ('agendadas', 'asistio', 'pct_asistencia', 'califica', 'avanza', 'pct_cierre')}
     hoy_s, en7 = hoy.isoformat(), (hoy + dt.timedelta(days=7)).isoformat()
-    pend = [c for c in citas if c['fecha'] >= hoy_s and c['estado'] in ('confirmada', 'reprogramada')]
+    pend = [c for c in citas if c['fecha'] >= hoy_s and c['estado'] != 'cancelada']
     seg = seguimientos(citas, hoy)
     return {'kpi': kpi, 'metas': metas,
             'secundarias': {'no_asistio': act['no_asistio'], 'canceladas': act['canceladas'], 'reprogramadas': act['reprogramadas'],

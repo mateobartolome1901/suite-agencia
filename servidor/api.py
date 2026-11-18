@@ -31,7 +31,7 @@ def _contexto(negocio):
     if pedidas:
         ids = {int(x) for x in pedidas.split(',') if x.strip().isdigit()}
         visibles = [c for c in visibles if c['id'] in ids]  # nunca se amplía más allá de lo permitido
-    datos = db.leer(current_app.motor, 'datos:' + negocio)
+    datos = agenda.datos_con_marcas(current_app.motor, negocio)
     hoy = dt.date.fromisoformat(datos['hoy']) if datos and datos.get('demo') else _hoy()
     try:
         if request.args.get('desde'):
@@ -433,7 +433,7 @@ def ventas_ver(negocio):
     desde, hasta = _mes_o_rango()
     ids = {c['id'] for c in cuentas}
     m = current_app.motor
-    datos = db.leer(m, 'datos:' + negocio)
+    datos = agenda.datos_con_marcas(m, negocio)
     t = dinero.tasas_de(m, negocio)
     r = ventas.calcular(negocio, ventas.listar(m, negocio, ids, desde, hasta), cuentas,
                         ventas.pauta_por_cuenta(datos, ids, desde, hasta), t)
@@ -877,7 +877,7 @@ def semanal_ver(negocio):
     cfg = NEGOCIOS[negocio]
     cuentas = [c for c in cuentas_visibles(usuario_actual(), negocio) if not c['propia']]
     m = current_app.motor
-    datos = db.leer(m, 'datos:' + negocio) or {'gasto': [], 'citas': [], 'anuncios': [], 'cuentas': []}
+    datos = agenda.datos_con_marcas(m, negocio) or {'gasto': [], 'citas': [], 'anuncios': [], 'cuentas': []}
     hoy = dt.date.fromisoformat(datos['hoy']) if datos.get('demo') else _hoy()
     lunes = hoy - dt.timedelta(days=hoy.weekday() + 7)  # última semana completa
     semanas = []
@@ -919,7 +919,7 @@ def rendimiento_ver(negocio):
     m = current_app.motor
     t = dinero.tasas_de(m, negocio)
     ids = {c['id'] for c in cuentas}
-    datos = db.leer(m, 'datos:' + negocio)
+    datos = agenda.datos_con_marcas(m, negocio)
     vs = ventas.calcular(negocio, ventas.listar(m, negocio, ids, d, h), cuentas, ventas.pauta_por_cuenta(datos, ids, d, h), t)
     por = {}
     for clave, e in cfg['embudos'].items():

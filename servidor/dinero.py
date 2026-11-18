@@ -100,7 +100,7 @@ def mov_publico(x, t):
 
 def pauta_propia(motor, negocio, desde, hasta):
     """Gasto de las campañas propias (cuenta propia del negocio), en USD, por día y campaña."""
-    datos = db.leer(motor, 'datos:' + negocio)
+    datos = agenda.datos_con_marcas(motor, negocio)
     if not datos:
         return 0.0, []
     propias = {c['id'] for c in datos.get('cuentas', []) if c.get('propia')}
@@ -134,7 +134,7 @@ def finanzas(motor, negocio, desde, hasta, hoy):
     # comisiones de Plastia cobradas (marcadas en la bitácora)
     clientes = [c for c in cuentas if not c['propia']]
     ids = {c['id'] for c in clientes}
-    datos = db.leer(motor, 'datos:' + negocio)
+    datos = agenda.datos_con_marcas(motor, negocio)
     vs = ventas.calcular(negocio, ventas.listar(motor, negocio, ids, desde, hasta), clientes,
                          ventas.pauta_por_cuenta(datos, ids, desde, hasta), t)
     if vs['resumen']['comision_cobrada']:
@@ -192,7 +192,7 @@ def resumen_inicio(motor, negocio, hoy):
     cuentas = db.cuentas_de(motor, negocio)
     clientes = [c for c in cuentas if not c['propia']]
     ids = {c['id'] for c in clientes}
-    datos = db.leer(motor, 'datos:' + negocio)
+    datos = agenda.datos_con_marcas(motor, negocio)
     vs = ventas.calcular(negocio, ventas.listar(motor, negocio, ids, desde, hasta), clientes, ventas.pauta_por_cuenta(datos, ids, desde, hasta), t)
     cobros = [cobro_publico(x, hoy, {c['id']: c['nombre'] for c in cuentas}, t) for x in cobros_de(motor, negocio)]
     setups = [x['monto_usd'] for x in cobros if x['concepto'] == 'setup' and x['pagado'] and x['pagado'] >= desde.isoformat()]
@@ -289,7 +289,7 @@ def _us(x):
 def ventas_agencia(motor, negocio, desde, hasta, hoy):
     cfg = NEGOCIOS[negocio]
     propias = [c for c in db.cuentas_de(motor, negocio) if c['propia']]
-    datos = db.leer(motor, 'datos:' + negocio) or {'gasto': [], 'citas': [], 'anuncios': [], 'cuentas': []}
+    datos = agenda.datos_con_marcas(motor, negocio) or {'gasto': [], 'citas': [], 'anuncios': [], 'cuentas': []}
     p = metricas.panel(datos, propias, desde, hasta, cfg['agencia']['paso'], indicadores.para_panel(motor, negocio, 'agencia', None)['objetivo'] or cfg['agencia']['objetivo_costo_cita'], hoy)
     t = tasas_de(motor, negocio)
     cuentas = db.cuentas_de(motor, negocio, solo_activas=False)
@@ -302,7 +302,7 @@ def ventas_agencia(motor, negocio, desde, hasta, hoy):
     asistidas = k['asistio']['valor']
     cierres = len(nuevos)
     return {'desde': desde.isoformat(), 'hasta': hasta.isoformat(), 'embudo': cfg['agencia']['nombre'],
-            'agendadas': k['citas']['valor'], 'asistidas': asistidas, 'pct_asistencia': k['pct_asistencia']['valor'],
+            'agendadas': p['totales']['agendadas'], 'desde_anuncios': k['citas']['valor'], 'asistidas': asistidas, 'pct_asistencia': k['pct_asistencia']['valor'],
             'gasto': k['gasto']['valor'], 'leads': k['leads']['valor'], 'costo_cita': k['costo_cita']['valor'],
             'cierres': cierres, 'tasa_cierre': cierres / asistidas * 100 if asistidas else None,
             'cac': k['gasto']['valor'] / cierres if cierres else None,

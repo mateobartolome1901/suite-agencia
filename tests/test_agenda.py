@@ -94,3 +94,19 @@ def test_marcar_cita_de_la_agencia_con_estado_de_ghl(app, admin):
 
 def test_portal_no_ve_la_agenda_de_ventas(operador):
     assert operador.get('/api/plastia/agenda?ambito=agencia').status_code == 403
+
+
+def test_ventas_campanas_y_agenda_cuentan_lo_mismo(app, admin):
+    """Mismo período: las llamadas, asistidas y el estado marcado en la suite coinciden en las tres pantallas."""
+    q = 'desde=2026-11-01&hasta=2026-11-30'
+    ag = admin.get('/api/plastia/agenda?ambito=agencia&' + q).get_json()
+    if not ag['citas']:
+        return
+    pasada = next((c for c in ag['citas'] if c['fecha'] < ag['hoy'] and c['estado'] != 'asistio'), None)
+    if pasada:  # marcarla en la suite tiene que moverse en todos lados
+        admin.post('/api/plastia/citas/%s/resultado?ambito=agencia' % pasada['id'], json={'asistencia': 'asistio'}, headers={'X-CSRF': admin.csrf})
+        ag = admin.get('/api/plastia/agenda?ambito=agencia&' + q).get_json()
+    ve = admin.get('/api/plastia/ventas-agencia?' + q).get_json()
+    pa = admin.get('/api/plastia/panel?ambito=agencia&' + q).get_json()
+    assert ve['agendadas'] == ag['kpi']['agendadas']['valor']
+    assert ve['asistidas'] == ag['kpi']['asistio']['valor'] == pa['kpi']['asistio']['valor']

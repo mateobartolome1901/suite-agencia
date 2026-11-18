@@ -62,7 +62,7 @@ def _base(datos, cuentas_ids, desde, hasta, paso, hoy):
         if d0 <= f <= d1 and anuncios[ia]['cuenta_id'] in ids:
             gasto += g; leads += ld; impresiones += imp; clics += cl
             por_dia[f]['gasto'] += g; por_dia[f]['leads'] += ld
-    creadas = asistio = no_asistio = canceladas = sin_marcar = 0
+    creadas = agendadas = asistio = no_asistio = canceladas = sin_marcar = 0
     hoy_s = hoy.isoformat()
     for fc, minuto, fcr, cid, tipo, est, ia in datos['citas']:
         if cid not in ids or tipo != paso:
@@ -70,6 +70,8 @@ def _base(datos, cuentas_ids, desde, hasta, paso, hoy):
         if ia >= 0 and d0 <= fcr <= d1:
             creadas += 1
             por_dia[fcr]['citas'] += 1
+        if d0 <= fc <= d1:
+            agendadas += 1  # todas las citas del período por fecha de la cita, vengan o no de un anuncio
         if d0 <= fc <= d1 and fc <= hoy_s:
             if est == 'asistio':
                 asistio += 1; por_dia[fc]['asistio'] += 1; por_dia[fc]['pasadas'] += 1
@@ -82,7 +84,7 @@ def _base(datos, cuentas_ids, desde, hasta, paso, hoy):
     pasadas = asistio + no_asistio + canceladas
     return {
         'gasto': gasto, 'leads': int(leads), 'impresiones': int(impresiones), 'clics': int(clics),
-        'citas': creadas, 'asistio': asistio, 'no_asistio': no_asistio, 'canceladas': canceladas, 'pasadas': pasadas,
+        'citas': creadas, 'agendadas': agendadas, 'asistio': asistio, 'no_asistio': no_asistio, 'canceladas': canceladas, 'pasadas': pasadas,
         'sin_marcar': sin_marcar,
         'costo_lead': _div(gasto, leads), 'costo_cita': _div(gasto, creadas),
         'pct_asistencia': _div(asistio * 100, pasadas), 'costo_asistente': _div(gasto, asistio),
@@ -195,6 +197,7 @@ def panel(datos, cuentas, desde, hasta, paso, objetivo_defecto, hoy, factor_rojo
                         'canceladas_ant': ant['canceladas'], 'pasadas': act['pasadas'], 'pct_agenda': act['pct_agenda'],
                         'impresiones': act['impresiones'], 'clics': act['clics']},
         'agenda': {'hoy': citas_hoy, 'proximos_7': prox7, 'sin_marcar': act['sin_marcar']},
+        'totales': {'agendadas': act['agendadas'], 'pasadas': act['pasadas']},
         'semaforo': semaf,
         'veredictos': cuenta_veredicto,
         'cuentas': filas,

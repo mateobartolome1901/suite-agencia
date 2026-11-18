@@ -157,11 +157,11 @@
     var h = cabecera(r.embudo, 'Tu propio embudo de venta: llamadas de la subcuenta propia en GHL, ' + v.cuentas.toLowerCase() + ' nuevos y lo que facturan · USD');
     h += navMes();
     h += '<div class="grilla" style="--n:4">' + [
-      t({ nombre: 'Llamadas agendadas', clave: true, valor: String(r.agendadas), sub: r.leads + ' leads · ' + us(r.gasto) + ' de pauta' }),
+      t({ nombre: 'Llamadas agendadas', clave: true, valor: String(r.agendadas), sub: 'por fecha de la llamada · ' + r.desde_anuncios + ' creadas desde anuncios' }),
       t({ nombre: 'Llamadas asistidas', valor: String(r.asistidas), pct: r.pct_asistencia == null ? null : Math.round(r.pct_asistencia), sub: 'de las pasadas' }),
       t({ nombre: v.cuentas + ' nuevos', clave: true, valor: String(r.cierres), sub: 'alta en el mes · tasa de cierre ' + (r.tasa_cierre == null ? '—' : Math.round(r.tasa_cierre) + '%') }),
       t({ nombre: 'CAC', valor: us(r.cac), sub: 'pauta ÷ ' + v.cuentas.toLowerCase() + ' nuevos' }),
-      t({ nombre: 'Costo por llamada', valor: us(r.costo_cita), sub: 'pauta ÷ llamadas agendadas' }),
+      t({ nombre: 'Costo por llamada', valor: us(r.costo_cita), sub: us(r.gasto) + ' de pauta ÷ ' + r.desde_anuncios + ' creadas desde anuncios · ' + r.leads + ' leads' }),
       t({ nombre: 'Setups cobrados', valor: us(r.setups_cobrados), sub: us(r.setups_pendientes) + ' pendientes' }),
       t({ nombre: fee ? 'MRR' : v.cuentas + ' activos', clave: fee, valor: fee ? us(r.mrr) : String(r.activos), sub: fee ? r.activos + ' ' + v.cuentas.toLowerCase() + ' con fee' : 'con plan cargado' }),
       t({ nombre: 'Llamadas de hoy', valor: String(r.agenda.hoy), sub: r.agenda.proximos_7 + ' en 7 días · ' + r.agenda.sin_marcar + ' sin marcar', ir: ['Ver agenda', 'ag-agenda'] })

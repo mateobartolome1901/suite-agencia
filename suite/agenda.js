@@ -1,7 +1,7 @@
 // Agenda (fase 2): Calendario de citas (día / semana / mes), ficha de la cita con el resultado de la llamada y Seguimientos.
 // Lee /api/<negocio>/agenda y /seguimientos; guarda en /api/<negocio>/citas/<id>/resultado. Clases de marca.css (cal-*, fc-*, ficha-*).
 (function () {
-  var A = { vista: 'semana', ref: null, busca: '', ficha: null, datos: null, menu: null, negocio: null, segBusca: '' };
+  var A = { vista: 'semana', ref: null, busca: '', ficha: null, datos: null, menu: null, negocio: null, segBusca: '', ambito: 'clientes' };
   var DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   var DIAS_LARGO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   var MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -12,7 +12,12 @@
 
   function S() { return window.SUITE; }
   function esc(s) { return S().esc(s == null ? '' : s); }
-  function voc() { return NEGOCIOS[A.negocio].voc; }
+  function voc() { var n = NEGOCIOS[A.negocio]; return A.ambito === 'agencia' ? Object.assign({}, n.voc, n.vocAgencia || {}) : n.voc; }
+  function esSeg() { return A.menu === 'seguimientos' || A.menu === 'ag-seguimientos'; }
+  function esCal() { return A.menu === 'calendario' || A.menu === 'ag-agenda'; }
+  function tituloCal() { return A.ambito === 'agencia' ? 'Agenda de ventas' : 'Citas de ' + voc().cuentas.toLowerCase(); }
+  function tituloSeg() { return A.ambito === 'agencia' ? 'Seguimientos de ventas' : 'Seguimientos'; }
+  function conAmbito(ruta) { return A.ambito === 'agencia' ? ruta + (ruta.indexOf('?') >= 0 ? '&' : '?') + 'ambito=agencia' : ruta; }
   // Fechas como texto ISO (aaaa-mm-dd) para no depender de la zona del navegador
   function f2d(s) { var p = s.split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
   function d2f(d) { return d.toISOString().slice(0, 10); }
@@ -153,7 +158,7 @@
 
   function vistaCalendario() {
     var r = A.datos, k = r.kpi, v = voc(), cfg = NEGOCIOS[A.negocio], hoy = r.hoy, s = r.secundarias;
-    var h = '<header><div class="e19"><h1 class="titulo-1">Calendario de citas</h1><span class="e30">' + corta(r.desde) + (r.hasta !== r.desde ? ' – ' + corta(r.hasta) : '') + ' · GHL · por fecha de la cita · hoy ' + corta(hoy) + '</span></div>' +
+    var h = '<header><div class="e19"><h1 class="titulo-1">' + esc(tituloCal()) + '</h1><span class="e30">' + (A.ambito === 'agencia' ? 'llamadas de venta de ' + esc(NEGOCIOS[A.negocio].corto || NEGOCIOS[A.negocio].nombre) + ' · ' : '') + corta(r.desde) + (r.hasta !== r.desde ? ' – ' + corta(r.hasta) : '') + ' · GHL · por fecha de la cita · hoy ' + corta(hoy) + '</span></div>' +
       '<div class="cab-filtros e36"><button class="btn-sec" type="button" disabled title="Selector de ' + esc(v.cuentas.toLowerCase()) + ': próxima entrega">' + esc(v.cuentas) + ': Todas (' + r.cuentas_disponibles.length + ')</button></div></header>';
     var cards = [
       kpi({ nombre: 'Citas agendadas', clave: true, valor: String(k.agendadas.valor), sub: 'vs ' + k.agendadas.anterior + ' mismo tramo ant.', vari: vari(k.agendadas.cambio) }),
@@ -173,7 +178,7 @@
       S().secItem('Citas pendientes', String(s.pendientes_7), s.pendientes_hoy + ' hoy · ' + s.pendientes_7 + ' en 7 días'),
       S().secItem('Sin marcar', String(s.sin_marcar), 'ya pasaron y siguen sin estado'),
       S().secItem('Seguimientos activos', String(s.seguimientos), s.vencidos + ' vencidos')
-    ], ['Ver seguimientos', 'seguimientos']);
+    ], ['Ver seguimientos', A.ambito === 'agencia' ? 'ag-seguimientos' : 'seguimientos']);
     var mapa = porDia(r.citas), dias = [];
     for (var d = r.desde; d <= r.hasta; d = suma(d, 1)) dias.push(d);
     var seg = '<div class="seg" role="group" aria-label="Vista">' + [['dia', 'Día'], ['semana', 'Semana'], ['mes', 'Mes']].map(function (x) { return '<button type="button" data-a-vista="' + x[0] + '" aria-pressed="' + (A.vista === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
@@ -218,7 +223,7 @@
       return h + '</aside>';
     }
     h += '<form class="e22" id="a-form"><h3 class="fin-h3">Resultado de la llamada</h3>' +
-      '<div class="e115"><span class="ct-etq">Asistencia</span>' + chips('Asistencia', [['asistencia', 'asistio', 'Asistió'], ['asistencia', 'no_asistio', 'No asistió'], ['asistencia', 'cancelada', 'Canceló']], F.asistencia) + '</div>' +
+      '<div class="e115"><span class="ct-etq">Estado (igual que en GHL)</span>' + chips('Asistencia', [['asistencia', 'confirmada', 'Confirmada'], ['asistencia', 'asistio', 'Asistió'], ['asistencia', 'no_asistio', 'No asistió'], ['asistencia', 'cancelada', 'Canceló']], F.asistencia) + '</div>' +
       '<div class="e115"><span class="ct-etq">¿Califica?</span>' + chips('Califica', [['califica', 'true', 'Sí'], ['califica', 'false', 'No']], F.califica) + '</div>' +
       '<div class="e115"><span class="ct-etq">Resultado</span>' + chips('Resultado', ['avanza', 'pendiente', 'seguimiento', 'no_interesado', 'perdido', 'no_califica'].map(function (k) { return ['resultado', k, resLabel(k)]; }), F.resultado) + '</div>' +
       '<div class="fc-rapidos"><label class="ct-dato">' + esc(v.servicio) + ' cotizado<input class="ct-input" name="servicio" value="' + esc(F.servicio || '') + '" maxlength="200"></label>' +
@@ -226,7 +231,7 @@
       '<label class="ct-dato">Próximo seguimiento<input class="ct-input ct-input--fecha" type="date" name="proximo" value="' + esc(F.proximo || '') + '"></label>' +
       '<label class="ct-dato">Notas<textarea class="ct-input ct-input--largo" name="notas" rows="4" maxlength="4000">' + esc(F.notas || '') + '</textarea></label>' +
       '<button type="submit" class="fin-boton" style="width:100%">Guardar</button>' +
-      '<p class="e12" id="a-form-msg" style="margin:0">Se guarda en la plataforma. Cuando esté el token de escritura de GHL, también va a actualizar la cita y las notas allá.</p></form>';
+      '<p class="e12" id="a-form-msg" style="margin:0">El estado se guarda acá y también se intenta cambiar en GHL.</p></form>';
     return h + '</aside>';
   }
   function abrirFicha(c) {
@@ -253,7 +258,7 @@
   function vistaSeg(r) {
     var v = voc(), cfg = NEGOCIOS[A.negocio], q = A.segBusca.trim().toLowerCase();
     var alDia = r.activos ? Math.round((r.activos - r.vencidos) / r.activos * 100) : null;
-    var h = '<header><div class="e19"><h1 class="titulo-1">Seguimientos</h1><span class="e30">' + esc(v.contactos) + ' en seguimiento o pendientes de ' + esc(v.compromiso.toLowerCase()) + ', por fecha del próximo contacto</span></div></header>';
+    var h = '<header><div class="e19"><h1 class="titulo-1">' + esc(tituloSeg()) + '</h1><span class="e30">' + esc(v.contactos) + ' en seguimiento o pendientes de ' + esc(v.compromiso.toLowerCase()) + ', por fecha del próximo contacto</span></div></header>';
     h += '<div class="grilla" style="--n:3">' +
       kpi({ nombre: 'Seguimientos activos', valor: String(r.activos), sub: r.pendientes + ' pendientes de ' + v.compromiso.toLowerCase(), meta: alDia == null ? null : [alDia + '% al día · ' + r.vencidos + ' vencidos', alDia === 100 ? 'cumple' : alDia >= 80 ? 'cerca' : 'falta', Math.max(4, alDia)] }).replace('<span class="pill var">—</span>', '') +
       kpi({ nombre: 'Vencidos', valor: String(r.vencidos), sub: r.para_hoy + ' para hoy · hay que contactarlos' }).replace('<span class="pill var">—</span>', '').replace('class="kpi-valor"', 'class="kpi-valor"' + (r.vencidos ? ' style="color:var(--rojo-texto)"' : '')) +
@@ -283,11 +288,11 @@
   function principal(html) { document.getElementById('principal').innerHTML = html; window.dcPostRender(); }
   function cargar() {
     var menu = A.menu, negocio = A.negocio;
-    if (menu === 'seguimientos') {
-      return api('/seguimientos').then(function (r) { if (A.menu !== menu || A.negocio !== negocio) return; A.seg = r; principal(vistaSeg(r)); }).catch(error);
+    if (esSeg()) {
+      return api(conAmbito('/seguimientos')).then(function (r) { if (A.menu !== menu || A.negocio !== negocio) return; A.seg = r; principal(vistaSeg(r)); }).catch(error);
     }
     var q = A.ref ? '?desde=' + rango()[0] + '&hasta=' + rango()[1] : '';
-    return api('/agenda' + q).then(function (r) {
+    return api(conAmbito('/agenda' + q)).then(function (r) {
       if (A.menu !== menu || A.negocio !== negocio) return;
       A.datos = r; if (!A.ref) A.ref = r.hoy;
       var foco = document.activeElement && document.activeElement.id === 'a-busca';
@@ -297,11 +302,12 @@
   }
   function error(e) {
     if (!A.menu) return;
-    principal('<header><div class="e19"><h1 class="titulo-1">' + (A.menu === 'seguimientos' ? 'Seguimientos' : 'Calendario de citas') + '</h1></div></header><section class="caja ini-bloque"><h3 class="fin-h3">No se pudo cargar la agenda</h3><p class="e52" style="margin:0">' + esc(e.message) + '.</p></section>');
+    principal('<header><div class="e19"><h1 class="titulo-1">' + esc(esSeg() ? tituloSeg() : tituloCal()) + '</h1></div></header><section class="caja ini-bloque"><h3 class="fin-h3">No se pudo cargar la agenda</h3><p class="e52" style="margin:0">' + esc(e.message) + '.</p></section>');
   }
   function mostrar(menu, negocio) {
-    if (A.negocio !== negocio) { A.ref = null; A.busca = ''; A.segBusca = ''; }
-    A.menu = menu; A.negocio = negocio;
+    var ambito = menu.indexOf('ag-') === 0 ? 'agencia' : 'clientes';
+    if (A.negocio !== negocio || A.ambito !== ambito) { A.ref = null; A.busca = ''; A.segBusca = ''; A.datos = null; A.seg = null; }
+    A.menu = menu; A.negocio = negocio; A.ambito = ambito;
     cargar();
   }
   function buscarCita(id) {
@@ -311,7 +317,7 @@
     return listas.filter(function (c) { return c.id === id; })[0];
   }
   function guardar(cuerpo, id) {
-    return api('/citas/' + encodeURIComponent(id) + '/resultado', 'POST', cuerpo).then(function (c) {
+    return api(conAmbito('/citas/' + encodeURIComponent(id) + '/resultado'), 'POST', cuerpo).then(function (c) {
       SONIDO.sonar('listo');
       return cargar().then(function () { return c; });
     });
@@ -336,7 +342,7 @@
       guardar({ proximo: suma(A.seg.hoy, n) }, id).catch(function () { b.disabled = false; });
       return;
     }
-    if (!A.datos || A.menu !== 'calendario') return;
+    if (!A.datos || !esCal()) return;
     if ((b = t.closest('[data-a-vista]'))) { A.vista = b.getAttribute('data-a-vista'); SONIDO.sonar('menu'); cargar(); return; }
     if ((b = t.closest('[data-a-paso]'))) {
       var p = +b.getAttribute('data-a-paso');
@@ -367,7 +373,7 @@
     var cuerpo = { asistencia: F.asistencia || null, califica: F.califica === '' ? null : F.califica === 'true', resultado: F.resultado || null,
       servicio: F.servicio, monto: monto === '' ? null : Number(monto), proximo: F.proximo || null, notas: F.notas };
     var btn = e.target.querySelector('button[type="submit"]'); btn.disabled = true; btn.textContent = 'Guardando…';
-    guardar(cuerpo, A.ficha.id).then(function (c) { abrirFicha(c); var m = document.getElementById('a-form-msg'); if (m) m.textContent = 'Guardado.'; })
+    guardar(cuerpo, A.ficha.id).then(function (c) { abrirFicha(c); var m = document.getElementById('a-form-msg'); if (m) m.textContent = (c.ghl && c.ghl.texto) || 'Guardado.'; })
       .catch(function (err) { btn.disabled = false; btn.textContent = 'Guardar'; document.getElementById('a-form-msg').textContent = 'No se pudo guardar (' + err.message + ').'; });
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && A.ficha) cerrarFicha(); });
@@ -375,6 +381,8 @@
   window.MENUS_API = window.MENUS_API || {};
   window.MENUS_API.calendario = mostrar;
   window.MENUS_API.seguimientos = mostrar;
+  window.MENUS_API['ag-agenda'] = mostrar;
+  window.MENUS_API['ag-seguimientos'] = mostrar;
   var salir = window.MENUS_API_SALIR;
   window.MENUS_API_SALIR = function () { A.menu = null; A.datos = null; A.seg = null; if (A.ficha) cerrarFicha(); if (salir) salir(); };
 })();

@@ -8,7 +8,7 @@
   if (!NEGOCIOS[estado.negocio]) estado.negocio = 'plastia';
   // Menús por rol: el admin ve todo; el resto, lo de su trabajo (o la lista que le armó el admin en Usuarios)
   var MENUS_ROL = {
-    vendedor: ['panel', 'trazabilidad', 'calendario', 'conversaciones', 'pacientes', 'seguimientos', 'rendimiento', 'semanal', 'bitacora', 'tareas', 'guiones', 'tablero-edicion', 'storyboards', 'estilos'],
+    vendedor: ['ag-agenda', 'ag-seguimientos', 'panel', 'trazabilidad', 'calendario', 'conversaciones', 'pacientes', 'seguimientos', 'rendimiento', 'semanal', 'bitacora', 'tareas', 'guiones', 'tablero-edicion', 'storyboards', 'estilos'],
     operador: ['calendario', 'pacientes', 'bitacora']
   };
   function menuPermitido(id) {

@@ -66,3 +66,31 @@ def test_resultado_queda_en_auditoria(app, admin):
     with app.motor.connect() as c:
         filas = c.execute(select(db.auditoria).where(db.auditoria.c.accion == 'resultado_cita')).all()
     assert len(filas) == 1 and filas[0].objeto == 'plastia:' + app.cita_id
+
+
+def test_agenda_de_ventas_de_la_agencia_solo_cuentas_propias(app, admin):
+    r = admin.get('/api/plastia/agenda?ambito=agencia&desde=2026-10-20&hasta=2026-11-30')
+    assert r.status_code == 200
+    j = r.get_json()
+    propias = {c['id'] for c in db.cuentas_de(app.motor, 'plastia') if c['propia']}
+    assert j['ambito'] == 'agencia' and j['embudo'] == 'Ventas Plastia'
+    assert {c['cuenta_id'] for c in j['citas']} <= propias
+    clientes = admin.get('/api/plastia/agenda?desde=2026-10-20&hasta=2026-11-30').get_json()
+    assert not ({c['cuenta_id'] for c in clientes['citas']} & propias)
+    assert admin.get('/api/plastia/seguimientos?ambito=agencia').status_code == 200
+    assert admin.get('/api/plastia/agenda?ambito=otro').status_code == 400
+
+
+def test_marcar_cita_de_la_agencia_con_estado_de_ghl(app, admin):
+    j = admin.get('/api/plastia/agenda?ambito=agencia&desde=2026-10-20&hasta=2026-11-30').get_json()
+    if not j['citas']:
+        return  # los datos de ejemplo no traen llamadas de venta en ese rango
+    cita = j['citas'][0]['id']
+    r = admin.post('/api/plastia/citas/%s/resultado?ambito=agencia' % cita, json={'asistencia': 'confirmada'}, headers={'X-CSRF': admin.csrf})
+    assert r.status_code == 200 and r.get_json()['estado'] == 'confirmada' and r.get_json()['ghl']['ok'] is False
+    # con el ámbito de clientes esa cita no existe
+    assert _post(admin, cita, {'asistencia': 'asistio'}).status_code == 404
+
+
+def test_portal_no_ve_la_agenda_de_ventas(operador):
+    assert operador.get('/api/plastia/agenda?ambito=agencia').status_code == 403

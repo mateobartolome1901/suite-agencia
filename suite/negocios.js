@@ -12,12 +12,13 @@ var NEGOCIOS = {
     logo: '<img src="logo-plastia.svg?v=2" alt="Plastia Partners" width="148" height="52">',
     socios: [{ nombre: 'Mateo', pct: 100 }],
     voc: { cuenta: 'Clínica', cuentas: 'Clínicas', contacto: 'Paciente', contactos: 'Pacientes', vendedor: 'Closer', vendedores: 'Closers', servicio: 'Cirugía', servicios: 'Cirugías', citaPrincipal: 'Valoración', citasPrincipales: 'Valoraciones', calificacion: 'Llamada de evaluación', compromiso: 'Anticipo' },
+    vocAgencia: { cuenta: 'Cuenta', cuentas: 'Cuentas propias', contacto: 'Prospecto', contactos: 'Prospectos', servicio: 'Plan', servicios: 'Planes', citaPrincipal: 'Cierre', citasPrincipales: 'Cierres', compromiso: 'Pago del setup' },
     cobro: { setup: 750, pctAgencia: 25, pctCloser: 25 },
     menus: [
       { grupo: null, items: [['resumen', 'Inicio', 'casa']] },
-      { grupo: 'Motor Agencia', items: [['ag-ventas', 'Ventas Plastia', 'tendencia'], ['ag-campanas', 'Campañas Plastia', 'megafono'], ['finanzas', 'Finanzas', 'billetera'], ['cobros', 'Cobros', 'tarjeta'], ['tareas', 'Tareas', 'check']] },
+      { grupo: 'Motor Agencia', items: [['ag-ventas', 'Ventas Plastia', 'tendencia'], ['ag-campanas', 'Campañas Plastia', 'megafono'], ['ag-agenda', 'Agenda de ventas', 'calendario'], ['ag-seguimientos', 'Seguimientos de ventas', 'reloj'], ['finanzas', 'Finanzas', 'billetera'], ['cobros', 'Cobros', 'tarjeta'], ['tareas', 'Tareas', 'check']] },
       { grupo: 'Motor Contenido', items: [['guiones', 'Guiones', 'guion'], ['tablero-edicion', 'Tablero de edición', 'tablero'], ['storyboards', 'Storyboards', 'video'], ['estilos', 'Estilos de edición', 'paleta']] },
-      { grupo: 'Motor Clínicas', items: [['panel', 'Panel de campañas', 'megafono'], ['trazabilidad', 'Trazabilidad', 'ruta'], ['calendario', 'Calendario de citas', 'calendario'], ['conversaciones', 'Conversaciones', 'chat'], ['pacientes', 'Pacientes', 'personas'], ['seguimientos', 'Seguimientos', 'reloj'], ['rendimiento', 'Rendimiento de closers', 'trofeo'], ['semanal', 'Reportes semanales', 'informe'], ['bitacora', 'Bitácora de cirugías', 'libro']] },
+      { grupo: 'Motor Clínicas', items: [['panel', 'Panel de campañas', 'megafono'], ['trazabilidad', 'Trazabilidad', 'ruta'], ['calendario', 'Citas de clínicas', 'calendario'], ['conversaciones', 'Conversaciones', 'chat'], ['pacientes', 'Pacientes', 'personas'], ['seguimientos', 'Seguimientos', 'reloj'], ['rendimiento', 'Rendimiento de closers', 'trofeo'], ['semanal', 'Reportes semanales', 'informe'], ['bitacora', 'Bitácora de cirugías', 'libro']] },
       { grupo: 'Administración', items: [['recursos', 'Ficha de clínicas', 'ficha'], ['indicadores', 'Indicadores', 'diana'], ['usuarios', 'Usuarios', 'usuario']] }
     ]
   },
@@ -38,12 +39,13 @@ var NEGOCIOS = {
       '<text x="61" y="41" font-family="Space Grotesk, sans-serif" font-weight="600" font-size="8.6" fill="#FF4040" letter-spacing="3.05">ACQUISITION</text></svg>',
     socios: [{ nombre: 'Mateo', pct: 50 }, { nombre: 'Luis', pct: 50 }],
     voc: { cuenta: 'Cliente', cuentas: 'Clientes', contacto: 'Lead', contactos: 'Leads', vendedor: 'Setter', vendedores: 'Setters', servicio: 'Servicio', servicios: 'Servicios', citaPrincipal: 'Cita principal', citasPrincipales: 'Citas principales', calificacion: 'Llamada de calificación', compromiso: 'Compromiso' },
+    vocAgencia: { cuenta: 'Cuenta', cuentas: 'Cuentas propias', contacto: 'Prospecto', contactos: 'Prospectos', servicio: 'Programa', servicios: 'Programas', citaPrincipal: 'Cierre', citasPrincipales: 'Cierres', compromiso: 'Pago del setup' },
     cobro: { setup: 4000, fee: 750 },
     menus: [
       { grupo: null, items: [['resumen', 'Inicio', 'casa']] },
-      { grupo: 'Motor Agencia', items: [['ag-ventas', 'Ventas TPA', 'tendencia'], ['ag-campanas', 'Campañas TPA', 'megafono'], ['finanzas', 'Finanzas', 'billetera'], ['tareas', 'Tareas', 'check']] },
+      { grupo: 'Motor Agencia', items: [['ag-ventas', 'Ventas TPA', 'tendencia'], ['ag-campanas', 'Campañas TPA', 'megafono'], ['ag-agenda', 'Agenda de ventas', 'calendario'], ['ag-seguimientos', 'Seguimientos de ventas', 'reloj'], ['finanzas', 'Finanzas', 'billetera'], ['tareas', 'Tareas', 'check']] },
       { grupo: 'Motor Contenido', items: [['guiones', 'Guiones', 'guion'], ['tablero-edicion', 'Tablero de edición', 'tablero'], ['storyboards', 'Storyboards', 'video'], ['estilos', 'Estilos de edición', 'paleta']] },
-      { grupo: 'Motor Clientes', items: [['panel', 'Panel de campañas', 'megafono'], ['trazabilidad', 'Trazabilidad', 'ruta'], ['calendario', 'Calendario de citas', 'calendario'], ['conversaciones', 'Conversaciones', 'chat'], ['pacientes', 'Leads', 'personas'], ['seguimientos', 'Seguimientos', 'reloj'], ['semanal', 'Reportes semanales', 'informe'], ['bitacora', 'Cierres de clientes', 'libro'], ['cobros', 'Suscripciones', 'tarjeta']] },
+      { grupo: 'Motor Clientes', items: [['panel', 'Panel de campañas', 'megafono'], ['trazabilidad', 'Trazabilidad', 'ruta'], ['calendario', 'Citas de clientes', 'calendario'], ['conversaciones', 'Conversaciones', 'chat'], ['pacientes', 'Leads', 'personas'], ['seguimientos', 'Seguimientos', 'reloj'], ['semanal', 'Reportes semanales', 'informe'], ['bitacora', 'Cierres de clientes', 'libro'], ['cobros', 'Suscripciones', 'tarjeta']] },
       { grupo: 'Administración', items: [['recursos', 'Ficha de clientes', 'ficha'], ['indicadores', 'Indicadores', 'diana'], ['usuarios', 'Usuarios', 'usuario']] }
     ]
   }
@@ -57,6 +59,8 @@ var MENU_INFO = {
   'tareas': ['F5', 'Tablero tipo Trello del equipo: listas, tarjetas arrastrables, responsable, fecha, checklist y repetición. Las de hoy aparecen en el Inicio.'],
   'panel': ['F1', 'Semáforo de cuentas, 4 KPI clave contra la meta, embudo con cada % al lado de su número, métricas secundarias, costo por cita y tendencia, tabla por cuenta.'],
   'trazabilidad': ['F1', 'Qué anuncios traen citas y ventas reales, con veredicto escalar / mantener / revisar / pausar. Switch a contactos cerrados con su anuncio de origen.'],
+  'ag-agenda': ['F2', 'Las llamadas de venta de la agencia (cuentas propias): calendario, ficha de cada prospecto y su estado, igual que en GHL.'],
+  'ag-seguimientos': ['F2', 'Prospectos de la agencia en seguimiento o pendientes de pago, por fecha del próximo contacto.'],
   'calendario': ['F2', 'La agenda real del CRM (día / semana / mes), indicadores de la agenda y la ficha de cada cita con el resultado de la llamada.'],
   'conversaciones': ['F5', 'Los chats del CRM dentro de la suite: lista, chat y contacto en tres columnas.'],
   'pacientes': ['F3', 'El contacto final como eje: citas, servicios, pagos y origen del anuncio.'],

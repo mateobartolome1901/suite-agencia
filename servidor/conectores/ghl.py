@@ -66,6 +66,19 @@ class GHL:
     def contacto(self, contacto_id):
         return self._get('/contacts/' + contacto_id, '2021-07-28').get('contact', {})
 
+    def marcar(self, evento_id, estado):
+        """Cambia el estado de una cita (showed, noshow, cancelled, confirmed). Necesita calendars/events.write."""
+        for intento in range(3):
+            r = self.s.put(BASE + '/calendars/events/appointments/' + evento_id, json={'appointmentStatus': estado}, timeout=30,
+                           headers={'Authorization': 'Bearer ' + self.token, 'Version': '2021-04-15', 'Accept': 'application/json'})
+            if r.status_code == 429:
+                time.sleep(2 * (intento + 1))
+                continue
+            if r.status_code >= 400:
+                raise ErrorCRM(f'GHL marcar cita: {r.status_code} {r.text[:200]}')
+            return r.json()
+        raise ErrorCRM('GHL marcar cita: demasiados pedidos')
+
     def campos(self, location_id):
         """Campos personalizados de la subcuenta: {id: nombre}. Si no hay permiso, vacío (no corta la lectura)."""
         try:

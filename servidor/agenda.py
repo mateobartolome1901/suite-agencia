@@ -11,7 +11,7 @@ from sqlalchemy import select
 from . import db
 from .metricas import _periodo_anterior
 
-ASISTENCIAS = ('asistio', 'no_asistio', 'cancelada')
+ASISTENCIAS = ('confirmada', 'asistio', 'no_asistio', 'cancelada')  # los mismos estados que GHL
 RESULTADOS = ('avanza', 'pendiente', 'seguimiento', 'no_interesado', 'perdido', 'no_califica')
 EN_SEGUIMIENTO = ('pendiente', 'seguimiento')
 PASADO = ('asistio', 'no_asistio', 'cancelada')

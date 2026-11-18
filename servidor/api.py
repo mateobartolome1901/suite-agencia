@@ -7,6 +7,7 @@ from sqlalchemy import insert, select, update
 
 from . import agenda, db, dinero, indicadores, metricas, ventas
 from .config import NEGOCIOS
+from .conectores import ghl as ghl_mod
 from .seguridad import cuentas_visibles, datos_de_cuentas, requiere, usuario_actual
 
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -250,9 +251,20 @@ def indicadores_guardar(negocio):
 
 # ---- Agenda (fase 2): calendario, ficha con resultado de la llamada y seguimientos ----
 
-def _agenda_base(negocio):
+def _agenda_base(negocio, ambito=None):
+    """ambito «agencia»: llamadas de venta de las cuentas propias; «clientes» (por defecto): citas de los clientes."""
     u = usuario_actual()
     cfg = NEGOCIOS[negocio]
+    ambito = ambito or request.args.get('ambito') or 'clientes'
+    if ambito not in ('agencia', 'clientes'):
+        abort(400)
+    if ambito == 'agencia':
+        if u['rol'] not in ('admin', 'vendedor'):
+            abort(403)  # la agenda de ventas de la agencia no es para el portal de clientes
+        cuentas = [c for c in cuentas_visibles(u, negocio) if c['propia']]
+        citas, datos = agenda.todas(current_app.motor, negocio, cuentas, cfg['agencia']['paso'])
+        hoy = dt.date.fromisoformat(datos['hoy']) if datos and datos.get('demo') else _hoy()
+        return u, cfg, None, cuentas, citas, datos, hoy
     clave = request.args.get('embudo') or next(iter(cfg['embudos']))
     if clave not in cfg['embudos']:
         abort(400)
@@ -282,12 +294,17 @@ def agenda_ver(negocio):
         abort(400)
     if hasta < desde or (hasta - desde).days > 45:
         abort(400)
-    metas = dict(indicadores.para_panel(current_app.motor, negocio, 'clientes', clave)['metas'])
-    metas['pct_cierre'] = indicadores.valores(current_app.motor, negocio)['emb_%s_pct_cierre' % clave]
+    if clave is None:  # agenda de ventas de la agencia
+        metas = dict(indicadores.para_panel(current_app.motor, negocio, 'agencia', None)['metas'])
+        metas['pct_cierre'] = indicadores.valores(current_app.motor, negocio).get('ag_pct_cierre')
+    else:
+        metas = dict(indicadores.para_panel(current_app.motor, negocio, 'clientes', clave)['metas'])
+        metas['pct_cierre'] = indicadores.valores(current_app.motor, negocio)['emb_%s_pct_cierre' % clave]
     r = agenda.indicadores(citas, desde, hasta, hoy, metas)
     d0, d1 = desde.isoformat(), hasta.isoformat()
     r.update({'citas': [c for c in citas if d0 <= c['fecha'] <= d1], 'desde': d0, 'hasta': d1, 'hoy': hoy.isoformat(),
-              'embudo': cfg['embudos'][clave]['nombre'], 'demo': bool(datos and datos.get('demo')), 'sin_datos': datos is None,
+              'ambito': 'agencia' if clave is None else 'clientes',
+              'embudo': cfg['agencia']['nombre'] if clave is None else cfg['embudos'][clave]['nombre'], 'demo': bool(datos and datos.get('demo')), 'sin_datos': datos is None,
               'puede_editar': u['rol'] in ('admin', 'vendedor'),
               'cuentas_disponibles': [{'id': c['id'], 'nombre': c['nombre'], 'grupo': c['grupo']} for c in cuentas]})
     return jsonify(r)
@@ -299,7 +316,8 @@ def agenda_ver(negocio):
 def seguimientos_ver(negocio):
     u, cfg, clave, cuentas, citas, datos, hoy = _agenda_base(negocio)
     r = agenda.seguimientos(citas, hoy)
-    r.update({'hoy': hoy.isoformat(), 'embudo': cfg['embudos'][clave]['nombre'], 'demo': bool(datos and datos.get('demo')),
+    r.update({'hoy': hoy.isoformat(), 'embudo': cfg['agencia']['nombre'] if clave is None else cfg['embudos'][clave]['nombre'],
+              'ambito': 'agencia' if clave is None else 'clientes', 'demo': bool(datos and datos.get('demo')),
               'puede_editar': True})
     return jsonify(r)
 
@@ -359,8 +377,34 @@ def resultado_guardar(negocio, cita_id):
         else:
             c.execute(insert(t).values(negocio=negocio, cita_id=cita_id, cuenta_id=cita['cuenta_id'], quien=u['email'], **nuevo))
     db.auditar(m, u['email'], 'resultado_cita', f'{negocio}:{cita_id}', dict(antes._mapping) if antes else None, nuevo)
-    citas, _ = agenda.todas(m, negocio, cuentas, cfg['embudos'][clave]['paso'])
-    return jsonify(next(c for c in citas if c['id'] == cita_id))
+    ghl_msg = _marcar_en_ghl(cita, cuentas, nuevo['asistencia']) if nuevo.get('asistencia') else None
+    paso = cfg['agencia']['paso'] if clave is None else cfg['embudos'][clave]['paso']
+    citas, _ = agenda.todas(m, negocio, cuentas, paso)
+    out = next(c for c in citas if c['id'] == cita_id)
+    out['ghl'] = ghl_msg
+    return jsonify(out)
+
+
+GHL_ESTADO = {'asistio': 'showed', 'no_asistio': 'noshow', 'cancelada': 'cancelled', 'confirmada': 'confirmed'}
+
+
+def _marcar_en_ghl(cita, cuentas, asistencia):
+    """Copia el estado a la cita de GHL. Si el token no tiene permiso de escritura, queda solo en la suite."""
+    cfg = current_app.cfg
+    if cfg.DATOS_DEMO or str(cita.get('id', '')).startswith('cita-'):
+        return {'ok': False, 'texto': 'Guardado en la suite (datos de ejemplo).'}
+    loc = next((c['crm_location_id'] for c in cuentas if c['id'] == cita['cuenta_id']), None)
+    token = (cfg.CRM_TOKENS_ESCRITURA.get(loc) or cfg.CRM_TOKENS.get(loc)) if loc else None
+    if not token:
+        return {'ok': False, 'texto': 'Guardado en la suite. Falta el token de GHL de esta subcuenta.'}
+    try:
+        ghl_mod.GHL(token).marcar(cita['id'], GHL_ESTADO[asistencia])
+        return {'ok': True, 'texto': 'Guardado en la suite y en GHL.'}
+    except ghl_mod.ErrorCRM as e:
+        sin_permiso = ' 401' in str(e) or ' 403' in str(e)
+        return {'ok': False, 'texto': 'Guardado en la suite. ' + (
+            'Para que también cambie en GHL, el token necesita el permiso calendars/events.write.' if sin_permiso
+            else 'GHL no lo aceptó: ' + str(e)[:120])}
 
 
 # ---- Fase 3: registro de ventas (bitácora) y contactos ----

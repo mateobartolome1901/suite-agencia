@@ -104,7 +104,7 @@
     h += seccion('Agenda', 'del calendario de GHL · toda la agenda',
       '<div class="bloques">' + kpi({ nombre: 'Citas de hoy', clave: true, valor: n0(r.agenda.hoy), sub: r.agenda.proximos_7 + ' en los próximos 7 días' }) +
       '<article class="kpi kpi--alerta"><div class="kpi-cab"><span class="kpi-nombre">Sin marcar</span></div><div class="kpi-cuerpo"><div class="kpi-valores"><div class="kpi-valor">' + n0(r.agenda.sin_marcar) + '</div><div class="kpi-sub">citas que ya pasaron y siguen sin estado</div></div></div></article></div>',
-      '<button class="kpi-ir" type="button" data-ir="calendario">Ver calendario →</button>');
+      '<button class="kpi-ir" type="button" data-ir="' + (r.ambito === 'agencia' ? 'ag-agenda' : 'calendario') + '">' + (r.ambito === 'agencia' ? 'Ver agenda de ventas' : 'Ver calendario') + ' →</button>');
     var v = r.veredictos;
     h += '<div class="bloques">' + seccion('Trazabilidad', 'anuncios de este embudo en el período',
       '<div class="grilla" style="--n:3">' + kpi({ nombre: 'Para pausar', valor: String(v.pausar), sub: 'gastan sin resultados' }) + kpi({ nombre: 'Para revisar', valor: String(v.revisar), sub: 'costo alto' }) + kpi({ nombre: 'Para escalar', clave: true, valor: String(v.escalar), sub: 'costo bajo' }) + '</div>',

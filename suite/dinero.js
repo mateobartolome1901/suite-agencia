@@ -164,7 +164,7 @@
       t({ nombre: 'Costo por llamada', valor: us(r.costo_cita), sub: 'pauta ÷ llamadas agendadas' }),
       t({ nombre: 'Setups cobrados', valor: us(r.setups_cobrados), sub: us(r.setups_pendientes) + ' pendientes' }),
       t({ nombre: fee ? 'MRR' : v.cuentas + ' activos', clave: fee, valor: fee ? us(r.mrr) : String(r.activos), sub: fee ? r.activos + ' ' + v.cuentas.toLowerCase() + ' con fee' : 'con plan cargado' }),
-      t({ nombre: 'Llamadas de hoy', valor: String(r.agenda.hoy), sub: r.agenda.proximos_7 + ' en 7 días · ' + r.agenda.sin_marcar + ' sin marcar', ir: ['Ver campañas', 'ag-campanas'] })
+      t({ nombre: 'Llamadas de hoy', valor: String(r.agenda.hoy), sub: r.agenda.proximos_7 + ' en 7 días · ' + r.agenda.sin_marcar + ' sin marcar', ir: ['Ver agenda', 'ag-agenda'] })
     ].join('') + '</div>';
     var filas = r.nuevos.map(function (x) { return '<tr><td><strong>' + esc(x.nombre) + '</strong></td><td>' + corta(x.alta) + '</td><td class="rend-num">' + us(x.setup) + '</td><td class="rend-num">' + us(x.fee) + '</td></tr>'; });
     h += '<section class="e22"><div class="e19"><h2 class="titulo-2">' + esc(v.cuentas) + ' nuevos del mes</h2><p class="e44">se cuentan por la fecha de alta de su ficha</p></div><div class="caja">' + tabla([[v.cuenta], ['Alta'], ['Setup', 1], ['Fee', 1]], filas, 'Ningún alta este mes.') + '</div></section>';

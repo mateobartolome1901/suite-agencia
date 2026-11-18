@@ -26,15 +26,23 @@ La suite está preparada para correr en **un solo proceso** (web + worker que le
 
 Actualizar después de un cambio: `cd /opt/suite && git pull && sudo systemctl restart suite`.
 
-## Token de Meta (una sola vez)
+## Token de Meta (una sola vez, unos 10 minutos)
 
-1. business.facebook.com › **Configuración del negocio › Usuarios › Usuarios del sistema › Agregar** (rol Administrador).
-2. **Asignar activos:** las cuentas publicitarias (la de Plastia, la de Realtor Millonario y las de cada clínica o cliente) con permiso de ver rendimiento.
-3. **Generar token:** elegir la app (si no hay, crear una en developers.facebook.com, tipo «Negocios»), permisos **ads_read** y **read_insights**, vencimiento **Nunca**.
-4. Pegarlo en `.env` en `META_ACCESS_TOKEN=`.
+**A. Crear la app (si no tenés una):**
+1. Entrá a **developers.facebook.com/apps** (con tu usuario de Facebook) › botón **Crear app**.
+2. Caso de uso: **Otro** › tipo **Negocios** (Business) › nombre «Suite agencia» › elegí tu portafolio comercial (el Business Manager donde están las cuentas publicitarias) › **Crear app**.
+
+**B. Crear el usuario del sistema y el token:**
+1. Entrá directo a **business.facebook.com/settings/system-users** (si te pide elegir portafolio, el mismo de antes).
+2. Botón **Agregar** › nombre «suite» › rol **Administrador** › **Crear usuario del sistema**.
+3. Con ese usuario seleccionado: **Asignar activos** › **Cuentas publicitarias** › marcá las de Plastia, Realtor Millonario y las de los clientes › permiso **Ver rendimiento** › **Guardar cambios**.
+4. Botón **Generar token** › elegí la app «Suite agencia» › Caducidad: **Nunca** › marcá **ads_read** y **read_insights** › **Generar token** › **copiar** (se muestra una sola vez).
+5. Pegalo en `.env` después de `META_ACCESS_TOKEN=` y guardá. Probarlo: `python -m servidor.probar`.
+
+Si en el paso B.1 no aparece «Usuarios del sistema»: abrí business.facebook.com › ícono de engranaje (**Configuración**) › menú de la izquierda **Usuarios** › **Usuarios del sistema**.
 
 ## Tokens de Go High Level
 
-En cada subcuenta: *Settings › Private Integrations › Create* con permisos: `calendars.readonly`, `calendars/events.readonly`, `contacts.readonly`, `conversations.readonly`, `conversations/message.write` (para responder chats desde la suite). El ID de la subcuenta está en *Settings › Business Profile* (o en la URL: `/location/ESTE_ID/`). Van en `.env` en `CRM_TOKENS`.
+En cada subcuenta: *Settings › Private Integrations › Create* con permisos: `calendars.readonly`, `calendars/events.readonly`, `contacts.readonly`, `conversations.readonly`, `conversations/message.write` (para responder chats desde la suite). El ID de la subcuenta está en *Settings › Business Profile* (o en la URL: `/location/ESTE_ID/`). Van en `.env`, una línea cada uno: `GHL_PLASTIA_ID=…`, `GHL_PLASTIA_TOKEN=…` (y lo mismo con `GHL_REALTOR_MILLONARIO_…`). Para probarlos: `python -m servidor.probar`.
 
 Después, en la suite: **Ficha de clientes › (la cuenta) › Traer calendarios y campañas** y elegir qué calendarios y qué campañas cuentan para cada negocio (Realtor Millonario tiene cosas que no son de TPA).

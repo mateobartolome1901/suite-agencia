@@ -37,6 +37,12 @@ class Config:
         self.GOOGLE_CLIENT_SECRET = e.get('GOOGLE_CLIENT_SECRET', '')
         # CRM: un token por subcuenta (location id -> token). Lectura y escritura por separado.
         self.CRM_TOKENS = {k: v for k, v in _json_env('CRM_TOKENS', {}).items() if not k.startswith('PEGAR')}
+        # Forma simple (una línea por dato): GHL_<NOMBRE>_ID=... y GHL_<NOMBRE>_TOKEN=...
+        for k, v in e.items():
+            if k.startswith('GHL_') and k.endswith('_ID') and v.strip():
+                token = e.get(k[:-3] + '_TOKEN', '').strip()
+                if token:
+                    self.CRM_TOKENS[v.strip()] = token
         self.CRM_TOKENS_ESCRITURA = _json_env('CRM_TOKENS_ESCRITURA', {})
         self.META_ACCESS_TOKEN = e.get('META_ACCESS_TOKEN', '')
         self.META_API_VERSION = e.get('META_API_VERSION', 'v21.0')

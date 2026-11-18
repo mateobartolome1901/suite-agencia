@@ -89,3 +89,12 @@ def test_worker_arma_datos_desde_ghl_y_meta():
     assert any('youtube' in a for a in avisos)  # avisa que falta configurar YouTube, no se cae
     assert 'k1' not in str(datos)  # los ids de contacto solo van en privado
     assert privado['citas'][0][2] in ('k1', 'k2')
+
+
+def test_tokens_ghl_en_forma_simple(monkeypatch):
+    from servidor.config import Config
+    monkeypatch.setenv('GHL_PLASTIA_ID', 'loc123')
+    monkeypatch.setenv('GHL_PLASTIA_TOKEN', 'pit-abc')
+    monkeypatch.setenv('GHL_VACIA_ID', '')
+    cfg = Config(SECRET_KEY='x')
+    assert cfg.CRM_TOKENS.get('loc123') == 'pit-abc' and '' not in cfg.CRM_TOKENS

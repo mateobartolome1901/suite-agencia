@@ -6,7 +6,7 @@
 # Antes: subir el archivo .env a /opt/suite/.env (con SECRET_KEY, ADMINS, tokens…). Ver DESPLIEGUE.md.
 set -euo pipefail
 : "${DOMINIO:?Falta DOMINIO (ej. suite-plastia.duckdns.org)}"
-: "${REPO:?Falta REPO (URL del repositorio)}"
+: "${REPO:=}"  # vacío = el código ya se copió a /opt/suite (deploy/subir.sh)
 DIR=/opt/suite
 
 # Servidores chicos (Google e2-micro, 1 GB): sumar 2 GB de memoria de respaldo en disco para que no se quede corto
@@ -25,7 +25,10 @@ if ! command -v caddy >/dev/null; then
 fi
 
 sudo mkdir -p "$DIR" && sudo chown "$USER" "$DIR"
-if [ -d "$DIR/.git" ]; then git -C "$DIR" pull --ff-only; else git clone "$REPO" "$DIR.tmp" && cp -a "$DIR.tmp/." "$DIR/" && rm -rf "$DIR.tmp"; fi
+if [ -n "$REPO" ]; then
+  if [ -d "$DIR/.git" ]; then git -C "$DIR" pull --ff-only; else git clone "$REPO" "$DIR.tmp" && cp -a "$DIR.tmp/." "$DIR/" && rm -rf "$DIR.tmp"; fi
+fi
+test -f "$DIR/requirements.txt" || { echo "Falta el código en $DIR (usá REPO=... o deploy/subir.sh)"; exit 1; }
 python3 -m venv "$DIR/venv"
 "$DIR/venv/bin/pip" install -q -r "$DIR/requirements.txt"
 "$DIR/venv/bin/python" "$DIR/suite/tools/temas.py"

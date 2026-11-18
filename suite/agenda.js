@@ -165,7 +165,7 @@
       kpi({ nombre: 'Citas asistidas', clave: true, valor: String(k.asistio.valor), sub: 'vs ' + k.asistio.anterior + ' mismo tramo ant.', vari: vari(k.asistio.cambio) }),
       kpi({ nombre: '% asistencia', clave: true, valor: pctTxt(k.pct_asistencia.valor), sub: 'vs ' + pctTxt(k.pct_asistencia.anterior) + ' mismo tramo ant.', vari: vari(k.pct_asistencia.cambio), meta: contraMeta(k.pct_asistencia.valor, r.metas.pct_asistencia) }),
       kpi({ nombre: 'Calificadas', valor: String(k.califica.valor), pct: k.asistio.valor ? Math.round(k.califica.valor / k.asistio.valor * 100) + '%' : null, sub: 'vs ' + k.califica.anterior + ' mismo tramo ant.', vari: vari(k.califica.cambio) }),
-      kpi({ nombre: v.citasPrincipales + ' agendadas', valor: String(k.avanza.valor), pct: k.agendadas.valor ? Math.round(k.avanza.valor / k.agendadas.valor * 100) + '%' : null, sub: 'vs ' + k.avanza.anterior + ' mismo tramo ant.', vari: vari(k.avanza.cambio) }),
+      kpi({ nombre: A.ambito === 'agencia' ? 'Avanzan al cierre' : v.citasPrincipales + ' agendadas', valor: String(k.avanza.valor), pct: k.agendadas.valor ? Math.round(k.avanza.valor / k.agendadas.valor * 100) + '%' : null, sub: 'vs ' + k.avanza.anterior + ' mismo tramo ant.', vari: vari(k.avanza.cambio) }),
       kpi({ nombre: 'Tasa de cierre efectiva', clave: true, valor: pctTxt(k.pct_cierre.valor), sub: 'vs ' + pctTxt(k.pct_cierre.anterior) + ' mismo tramo ant.', vari: vari(k.pct_cierre.cambio), meta: contraMeta(k.pct_cierre.valor, r.metas.pct_cierre) })
     ];
     h += '<section class="e22"><div class="e136"><div class="e19"><h2 class="titulo-2">Indicadores de la agenda</h2></div></div><div class="grilla" style="--n:6">' + cards.join('') + '</div></section>';
@@ -195,7 +195,7 @@
   // ---- Ficha de la cita ----
   function resLabel(k) {
     var v = voc();
-    return { avanza: v.citaPrincipal + ' agendada', pendiente: 'Pendiente de ' + v.compromiso.toLowerCase(), seguimiento: 'En seguimiento', no_interesado: 'No interesado', perdido: 'Perdido', no_califica: 'No califica' }[k];
+    return { avanza: A.ambito === 'agencia' ? 'Avanza al cierre' : v.citaPrincipal + ' agendada', pendiente: 'Pendiente de ' + v.compromiso.toLowerCase(), seguimiento: 'En seguimiento', no_interesado: 'No interesado', perdido: 'Perdido', no_califica: 'No califica' }[k];
   }
   function chips(nombre, opciones, actual) {
     return '<div class="e53" role="group" aria-label="' + esc(nombre) + '">' + opciones.map(function (o) {

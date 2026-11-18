@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instala la suite en un VPS Ubuntu (Oracle Cloud Always Free, Hetzner, etc.) con HTTPS automático.
+# Instala la suite en un VPS Ubuntu (Google Cloud e2-micro gratis, Hetzner, Oracle, etc.) con HTTPS automático.
 # Uso (en el VPS, como usuario con sudo):
 #   curl -fsSL <este archivo> -o instalar.sh   (o copiarlo)  y después:
 #   DOMINIO=suite.midominio.com REPO=https://github.com/mateobartolome1901/suite-agencia.git bash instalar.sh
@@ -8,6 +8,12 @@ set -euo pipefail
 : "${DOMINIO:?Falta DOMINIO (ej. suite-plastia.duckdns.org)}"
 : "${REPO:?Falta REPO (URL del repositorio)}"
 DIR=/opt/suite
+
+# Servidores chicos (Google e2-micro, 1 GB): sumar 2 GB de memoria de respaldo en disco para que no se quede corto
+if [ "$(awk '/MemTotal/{print $2}' /proc/meminfo)" -lt 2000000 ] && ! swapon --show | grep -q /swapfile; then
+  sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+  grep -q /swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
 
 sudo apt-get update -y
 sudo apt-get install -y python3-venv python3-pip git debian-keyring debian-archive-keyring apt-transport-https curl

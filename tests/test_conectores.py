@@ -126,3 +126,8 @@ def test_origen_desde_utm_en_campos_personalizados_y_contactos_de_prueba():
     assert ghl.origen_anuncio(k, campos) == {'campana': 'PLASTIA | FRÍO', 'nombre': 'V1B | La factura'}
     assert ghl.origen_anuncio(k) is None  # sin los nombres de los campos no se adivina
     assert ghl.es_prueba({'tags': ['lead agencia', 'Prueba']}) and not ghl.es_prueba({'tags': ['calificado']})
+
+
+def test_utm_content_numerico_es_id_de_anuncio():
+    k = {'attributionSource': {'utmCampaign': '120246286994160680', 'utmContent': '120246518685750680'}}
+    assert ghl.origen_anuncio(k) == {'id': '120246518685750680'}

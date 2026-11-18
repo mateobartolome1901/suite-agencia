@@ -124,11 +124,15 @@ def origen_anuncio(contacto, campos=None):
             return {'id': str(ad_id)}
         campana = a.get('campaign') or a.get('utmCampaign')
         nombre = a.get('utmContent') or a.get('adName')
+        if str(nombre or '').isdigit() and len(str(nombre)) >= 12:
+            return {'id': str(nombre)}
         if campana and nombre:
             return {'campana': campana, 'nombre': nombre}
     u = _utm_de_campos(contacto, campos or {})
     if u.get('adId'):
         return {'id': u['adId']}
+    if str(u.get('utmContent', '')).isdigit() and len(u['utmContent']) >= 12:
+        return {'id': u['utmContent']}  # utm_content={{ad.id}}: el ID del anuncio de Meta
     if u.get('campaign') and u.get('utmContent'):
         return {'campana': u['campaign'], 'nombre': u['utmContent']}
     return None

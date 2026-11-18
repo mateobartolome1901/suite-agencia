@@ -13,6 +13,8 @@ La suite está preparada para correr en **un solo proceso** (web + worker que le
 
 ## Pasos (Google Cloud, gratis)
 
+**Hecho (2026-11-18):** proyecto `suite-agencia`, instancia `suite` (e2-micro, us-east1-c, Ubuntu 24.04, disco estándar 30 GB, sin copias ni agente de supervisión), IP fija `suite-ip` = **34.75.228.155**, puertos 80/443 abiertos, alerta «Suite alerta» de US$1 (50/90/100 %). Google no permite tope automático para servidores: solo alerta por mail.
+
 1. **Cuenta:** console.cloud.google.com con mateobartolome1901@gmail.com › aceptar términos › **Probar gratis / Activar** (país, tarjeta). Te dan US$300 de prueba por 90 días; el servidor e2-micro sigue gratis después.
 2. **Proyecto:** arriba a la izquierda, selector de proyecto › **Proyecto nuevo** › nombre `suite-agencia` › Crear (y dejarlo elegido).
 3. **Alerta de gasto:** menú ☰ › **Facturación** › **Presupuestos y alertas** › Crear presupuesto › US$1 › alertas al 50 %, 90 % y 100 % (te avisa por mail si algo empezara a cobrarse).

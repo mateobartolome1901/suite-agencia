@@ -44,7 +44,10 @@ class Config:
                 if token:
                     self.CRM_TOKENS[v.strip()] = token
         self.CRM_TOKENS_ESCRITURA = _json_env('CRM_TOKENS_ESCRITURA', {})
-        self.META_ACCESS_TOKEN = e.get('META_ACCESS_TOKEN', '')
+        self.META_ACCESS_TOKEN = e.get('META_ACCESS_TOKEN', '').strip()
+        # Un token por portfolio comercial: META_ACCESS_TOKEN y además META_ACCESS_TOKEN_2, _3, …
+        self.META_TOKENS = [t for t in [self.META_ACCESS_TOKEN] + [e[k].strip() for k in sorted(e)
+                            if k.startswith('META_ACCESS_TOKEN_')] if t and not t.startswith('PEGAR')]
         self.META_API_VERSION = e.get('META_API_VERSION', 'v21.0')
         # YouTube = Google Ads API (campañas de video)
         self.GOOGLE_ADS_DEVELOPER_TOKEN = e.get('GOOGLE_ADS_DEVELOPER_TOKEN', '')
@@ -55,7 +58,7 @@ class Config:
         self.DIAS = int(e.get('DIAS', '90'))
         self.DIAS_PROXIMOS = int(e.get('DIAS_PROXIMOS', '14'))
         # Sin credenciales (ni Meta ni GHL), el worker publica datos de ejemplo para poder ver la suite
-        self.DATOS_DEMO = e.get('DATOS_DEMO', '1' if not (self.META_ACCESS_TOKEN or self.CRM_TOKENS) else '0') == '1'
+        self.DATOS_DEMO = e.get('DATOS_DEMO', '1' if not (self.META_TOKENS or self.CRM_TOKENS) else '0') == '1'
         self.TESTING = False
         for k, v in extra.items():
             setattr(self, k, v)

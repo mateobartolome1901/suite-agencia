@@ -26,7 +26,10 @@ def leads_de(acciones):
 
 class Meta:
     def __init__(self, token, version='v21.0', sesion=None):
-        self.token = token
+        # Uno o varios tokens (uno por portfolio comercial): cada cuenta publicitaria usa el primero que la ve.
+        self.tokens = [t for t in ([token] if isinstance(token, str) else list(token)) if t]
+        self.token = self.tokens[0] if self.tokens else ''
+        self._de_cuenta = {}
         self.base = f'https://graph.facebook.com/{version}'
         self.s = sesion or requests.Session()
 
@@ -35,7 +38,7 @@ class Meta:
         if not cuenta_act.startswith('act_'):
             cuenta_act = 'act_' + cuenta_act
         url = f'{self.base}/{cuenta_act}/insights'
-        params = {'level': 'ad', 'time_increment': 1, 'limit': 500, 'access_token': self.token,
+        params = {'level': 'ad', 'time_increment': 1, 'limit': 500, 'access_token': self.token_de(cuenta_act),
                   'fields': 'ad_id,ad_name,adset_name,campaign_id,campaign_name,spend,impressions,clicks,actions',
                   'time_range': json.dumps({'since': desde.isoformat(), 'until': hasta.isoformat()})}
         filas = []
@@ -59,8 +62,31 @@ class Meta:
             params = None  # la URL de "next" ya trae todo
         return filas
 
-    def _get(self, ruta, **params):
-        params['access_token'] = self.token
+    def token_de(self, cuenta_act):
+        """Token que tiene acceso a esa cuenta (con un solo token, ese)."""
+        act = cuenta_act if cuenta_act.startswith('act_') else 'act_' + cuenta_act
+        if len(self.tokens) <= 1:
+            return self.token
+        if act not in self._de_cuenta:
+            for t in self.tokens:
+                r = self.s.get(f'{self.base}/{act}', params={'fields': 'id', 'access_token': t}, timeout=60)
+                if r.status_code < 400:
+                    self._de_cuenta[act] = t
+                    break
+            else:
+                self._de_cuenta[act] = self.token
+        return self._de_cuenta[act]
+
+    def cuentas(self):
+        """Cuentas publicitarias que ven todos los tokens: [{name, account_id, currency}]."""
+        vistas = {}
+        for t in self.tokens:
+            for x in self._get('me/adaccounts', _token=t, fields='name,account_id,currency', limit=200).get('data', []):
+                vistas.setdefault(x.get('account_id'), x)
+        return list(vistas.values())
+
+    def _get(self, ruta, _token=None, **params):
+        params['access_token'] = _token or (self.token_de(ruta.split('/')[0]) if ruta.startswith('act_') else self.token)
         r = self.s.get(f'{self.base}/{ruta}', params=params, timeout=60)
         if r.status_code >= 400:
             raise ErrorMeta(f'Meta {ruta}: {r.status_code} {r.text[:200]}')

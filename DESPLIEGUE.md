@@ -38,7 +38,7 @@ Actualizar después de un cambio: `cd /opt/suite && git pull && sudo systemctl r
 3. Con ese usuario seleccionado: **Asignar activos** › **Cuentas publicitarias** › marcá las de Plastia, Realtor Millonario y las de los clientes › permiso **Ver rendimiento** › **Guardar cambios**.
 4. Darle la app al usuario: con el mismo usuario seleccionado, **Asignar activos** › **Aplicaciones** › marcá «Suite agencia» › **Control total** (o «Administrar app») › **Guardar cambios**. Sin esto, al generar el token aparece «No hay permisos disponibles». Si la app no figura en la lista: menú izquierdo **Cuentas › Aplicaciones** › **Añadir** › «Conectar un identificador de app» › pegá el ID de la app (está arriba de todo en developers.facebook.com/apps).
 5. Botón **Generar token** › elegí la app «Suite agencia» › Caducidad: **Nunca** › marcá **ads_read** y **read_insights** › **Generar token** › **copiar** (se muestra una sola vez).
-6. Pegalo en `.env` después de `META_ACCESS_TOKEN=` y guardá. Probarlo: `python -m servidor.probar`.
+6. Pegalo en `.env` después de `META_ACCESS_TOKEN=` y guardá. Si otra cuenta publicitaria está en **otro portfolio**, repetí todo en ese portfolio y pegá ese token en `META_ACCESS_TOKEN_2=`: la suite usa para cada cuenta el token que la ve. Probarlo: `python -m servidor.probar`.
 
 Si en el paso B.1 no aparece «Usuarios del sistema»: abrí business.facebook.com › ícono de engranaje (**Configuración**) › menú de la izquierda **Usuarios** › **Usuarios del sistema**.
 

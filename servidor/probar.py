@@ -18,10 +18,10 @@ def main():
             print('GHL %s…: OK, %d calendarios: %s' % (loc[:5], len(cals), ', '.join(c.get('name', '') for c in cals)))
         except ghl.ErrorCRM as e:
             print('GHL %s…: FALLA (%s)' % (loc[:5], str(e)[:160]))
-    if cfg.META_ACCESS_TOKEN:
+    if cfg.META_TOKENS:
         try:
-            d = Meta(cfg.META_ACCESS_TOKEN, cfg.META_API_VERSION)._get('me/adaccounts', fields='name,account_id,currency', limit=50)
-            print('Meta: OK, cuentas publicitarias: ' + ', '.join('%s (act_%s, %s)' % (x.get('name'), x.get('account_id'), x.get('currency')) for x in d.get('data', [])))
+            d = Meta(cfg.META_TOKENS, cfg.META_API_VERSION).cuentas()
+            print('Meta (%d token/s): OK, cuentas publicitarias: ' % len(cfg.META_TOKENS) + ', '.join('%s (act_%s, %s)' % (x.get('name'), x.get('account_id'), x.get('currency')) for x in d))
         except ErrorMeta as e:
             print('Meta: FALLA (%s)' % str(e)[:160])
     else:

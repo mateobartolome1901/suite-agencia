@@ -98,3 +98,21 @@ def test_tokens_ghl_en_forma_simple(monkeypatch):
     monkeypatch.setenv('GHL_VACIA_ID', '')
     cfg = Config(SECRET_KEY='x')
     assert cfg.CRM_TOKENS.get('loc123') == 'pit-abc' and '' not in cfg.CRM_TOKENS
+
+
+def test_varios_tokens_de_meta_cada_cuenta_usa_el_suyo(monkeypatch):
+    monkeypatch.setenv('META_ACCESS_TOKEN', 'tok-a')
+    monkeypatch.setenv('META_ACCESS_TOKEN_2', 'tok-b')
+    assert Config(SECRET_KEY='x').META_TOKENS == ['tok-a', 'tok-b']
+
+    class SesionPorToken(SesionFalsa):
+        def get(self, url, params=None, headers=None, timeout=None):
+            self.pedidos.append((url, params, headers))
+            # act_2 solo la ve el segundo token
+            if url.endswith('/act_2') and params.get('access_token') != 'tok-b':
+                return Resp({'error': 'sin acceso'}, 400)
+            return Resp({'id': 'act_2', 'currency': 'COP'})
+    s = SesionPorToken({})
+    m = Meta(['tok-a', 'tok-b'], sesion=s)
+    assert m.moneda('2') == 'COP'
+    assert s.pedidos[-1][1]['access_token'] == 'tok-b'

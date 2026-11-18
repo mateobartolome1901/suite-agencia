@@ -102,7 +102,7 @@ def una_lectura(cfg, motor):
         if monedas.actualizar(motor) is not None:
             db.publicar(motor, 'tasas', {**(db.leer(motor, 'tasas') or {}), 'dia': hoy.isoformat()})
     tasas = monedas.tasas(motor)
-    meta = Meta(cfg.META_ACCESS_TOKEN, cfg.META_API_VERSION) if cfg.META_ACCESS_TOKEN else None
+    meta = Meta(cfg.META_TOKENS, cfg.META_API_VERSION) if cfg.META_TOKENS else None
     yt = YouTube(cfg)
     yt = yt if yt.disponible() else None
     for negocio in NEGOCIOS:

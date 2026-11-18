@@ -539,10 +539,10 @@ def cuentas_fuentes(negocio, cuenta_id):
                                 for x in ghl_mod.GHL(token).calendarios(loc)]
         except ghl_mod.ErrorCRM as e:
             r['avisos'].append(str(e))
-    if not cfg.META_ACCESS_TOKEN:
+    if not cfg.META_TOKENS:
         r['avisos'].append('Falta el token de Meta (META_ACCESS_TOKEN).')
     else:
-        m = Meta(cfg.META_ACCESS_TOKEN, cfg.META_API_VERSION)
+        m = Meta(cfg.META_TOKENS, cfg.META_API_VERSION)
         for act in cu.get('meta_cuentas') or []:
             try:
                 r['campanas'] += [{**x, 'cuenta': act} for x in m.campanas(act)]
